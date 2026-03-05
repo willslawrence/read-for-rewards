@@ -191,6 +191,11 @@
       <div class="form-group">
         <label>Your Name</label>
         <select id="readerSelect"><option value="">Select your name…</option></select>
+        <div style="margin-top:8px;">
+          <span style="font-size:12px;color:var(--muted);">New reader?</span>
+          <input type="text" id="newReaderName" placeholder="Type your name…" style="display:none;margin-top:6px;">
+          <button onclick="toggleNewReader()" id="newReaderBtn" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-weight:600;">+ Add yourself</button>
+        </div>
       </div>
       <div class="form-group">
         <label>Book</label>
@@ -253,9 +258,10 @@
 <script>
 // ─── CONFIG ───
 // Replace these after creating the Google Sheet
-const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+const SHEET_ID = '1ZtV8B6NDoSpKEasGwdX9bk13hi4Gj4YIne-6ipyXVe8';
 const BOOKS_GID = '0';
-const READERS_GID = '1';
+const READERS_GID = '163992757';
+// Deploy Apps Script as web app, paste URL here:
 const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 
 // CSV base for reading
@@ -263,14 +269,14 @@ const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 
 // ─── PLACEHOLDER DATA (used when sheet not connected) ───
 const PLACEHOLDER_BOOKS = [
-  { title:"Atomic Habits", author:"James Clear", cover:"https://covers.openlibrary.org/b/isbn/0735211299-L.jpg", reward:10, summary:"An easy and proven way to build good habits and break bad ones. Clear reveals practical strategies that will teach you how to form good habits, break bad ones, and master the tiny behaviors that lead to remarkable results.", rating:4.4, genre:"Self-Help" },
-  { title:"The 7 Habits of Highly Effective People", author:"Stephen R. Covey", cover:"https://covers.openlibrary.org/b/isbn/0743269519-L.jpg", reward:15, summary:"A holistic, integrated, principle-centered approach for solving personal and professional problems. With penetrating insights and practical anecdotes, Covey reveals a step-by-step pathway for living with fairness, integrity, honesty, and human dignity.", rating:4.2, genre:"Leadership" },
-  { title:"Mere Christianity", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652926-L.jpg", reward:12, summary:"In the classic Mere Christianity, C.S. Lewis explores the common ground upon which all of those of Christian faith stand together. Bringing together his legendary broadcast talks during World War Two from his challenging works on the subject of God.", rating:4.3, genre:"Theology" },
-  { title:"The Hiding Place", author:"Corrie ten Boom", cover:"https://covers.openlibrary.org/b/isbn/0800794052-L.jpg", reward:10, summary:"The remarkable true story of the most celebrated hiding place of World War II. Corrie ten Boom and her family risked their lives to help Jews escape the Nazi Holocaust — and were caught. This is their story of faith, hope, and love in the face of unimaginable evil.", rating:4.6, genre:"Biography" },
-  { title:"Thinking, Fast and Slow", author:"Daniel Kahneman", cover:"https://covers.openlibrary.org/b/isbn/0374533555-L.jpg", reward:15, summary:"Kahneman takes us on a groundbreaking tour of the mind and explains the two systems that drive the way we think. System 1 is fast, intuitive, and emotional; System 2 is slower, more deliberative, and more logical.", rating:4.2, genre:"Psychology" },
-  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads and the ways in which both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets.", rating:4.1, genre:"Finance" },
-  { title:"The Pursuit of God", author:"A.W. Tozer", cover:"https://covers.openlibrary.org/b/isbn/1600660959-L.jpg", reward:10, summary:"A Christian classic that calls believers to pursue a deeper relationship with God. Tozer diagnoses the state of modern Christianity and pleads for a return to personal, passionate pursuit of God Himself.", rating:4.5, genre:"Devotional" },
-  { title:"Deep Work", author:"Cal Newport", cover:"https://covers.openlibrary.org/b/isbn/1455586692-L.jpg", reward:12, summary:"Rules for focused success in a distracted world. Newport makes the case that the ability to concentrate without distraction on a cognitively demanding task is becoming increasingly valuable — and increasingly rare.", rating:4.2, genre:"Productivity" }
+  { title:"Atomic Habits", author:"James Clear", cover:"https://covers.openlibrary.org/b/isbn/0735211299-L.jpg", reward:10, summary:"An easy and proven way to build good habits and break bad ones. Clear reveals practical strategies that will teach you how to form good habits, break bad ones, and master the tiny behaviors that lead to remarkable results.", rating:4.4, genre:"Self-Help", totalPages:320 },
+  { title:"The 7 Habits of Highly Effective People", author:"Stephen R. Covey", cover:"https://covers.openlibrary.org/b/isbn/0743269519-L.jpg", reward:15, summary:"A holistic, integrated, principle-centered approach for solving personal and professional problems. With penetrating insights and practical anecdotes, Covey reveals a step-by-step pathway for living with fairness, integrity, honesty, and human dignity.", rating:4.2, genre:"Leadership", totalPages:381 },
+  { title:"Mere Christianity", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652926-L.jpg", reward:12, summary:"In the classic Mere Christianity, C.S. Lewis explores the common ground upon which all of those of Christian faith stand together. Bringing together his legendary broadcast talks during World War Two from his challenging works on the subject of God.", rating:4.3, genre:"Theology", totalPages:227 },
+  { title:"The Hiding Place", author:"Corrie ten Boom", cover:"https://covers.openlibrary.org/b/isbn/0800794052-L.jpg", reward:10, summary:"The remarkable true story of the most celebrated hiding place of World War II. Corrie ten Boom and her family risked their lives to help Jews escape the Nazi Holocaust — and were caught. This is their story of faith, hope, and love in the face of unimaginable evil.", rating:4.6, genre:"Biography", totalPages:241 },
+  { title:"Thinking, Fast and Slow", author:"Daniel Kahneman", cover:"https://covers.openlibrary.org/b/isbn/0374533555-L.jpg", reward:15, summary:"Kahneman takes us on a groundbreaking tour of the mind and explains the two systems that drive the way we think. System 1 is fast, intuitive, and emotional; System 2 is slower, more deliberative, and more logical.", rating:4.2, genre:"Psychology", totalPages:499 },
+  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads and the ways in which both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets.", rating:4.1, genre:"Finance", totalPages:336 },
+  { title:"The Pursuit of God", author:"A.W. Tozer", cover:"https://covers.openlibrary.org/b/isbn/1600660959-L.jpg", reward:10, summary:"A Christian classic that calls believers to pursue a deeper relationship with God. Tozer diagnoses the state of modern Christianity and pleads for a return to personal, passionate pursuit of God Himself.", rating:4.5, genre:"Devotional", totalPages:128 },
+  { title:"Deep Work", author:"Cal Newport", cover:"https://covers.openlibrary.org/b/isbn/1455586692-L.jpg", reward:12, summary:"Rules for focused success in a distracted world. Newport makes the case that the ability to concentrate without distraction on a cognitively demanding task is becoming increasingly valuable — and increasingly rare.", rating:4.2, genre:"Productivity", totalPages:296 }
 ];
 
 const PLACEHOLDER_READERS = [
@@ -362,9 +368,22 @@ async function loadData() {
   try {
     if (SHEET_ID === 'YOUR_SHEET_ID_HERE') throw new Error('No sheet configured');
 
+    async function fetchCSV(gid) {
+      const url = CSV_BASE + gid;
+      try {
+        const r = await fetch(url);
+        if (r.ok) return r.text();
+      } catch(e) {}
+      // CORS fallback
+      const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+      const r2 = await fetch(proxy);
+      if (!r2.ok) throw new Error('CSV fetch failed');
+      return r2.text();
+    }
+
     const [booksResp, readersResp] = await Promise.all([
-      fetch(CSV_BASE + BOOKS_GID).then(r => { if(!r.ok) throw new Error(); return r.text(); }),
-      fetch(CSV_BASE + READERS_GID).then(r => { if(!r.ok) throw new Error(); return r.text(); })
+      fetchCSV(BOOKS_GID),
+      fetchCSV(READERS_GID)
     ]);
 
     const booksData = parseCSVProper(booksResp);
@@ -377,7 +396,8 @@ async function loadData() {
       reward: parseFloat(b.reward) || 0,
       summary: b.summary || '',
       rating: parseFloat(b.goodreads_rating || b.rating) || 0,
-      genre: b.genre || ''
+      genre: b.genre || '',
+      totalPages: parseInt(b.total_pages) || 0
     }));
 
     readers = readersData.map(r => ({
@@ -533,8 +553,32 @@ document.getElementById('readerSelect').onchange = updateFormState;
 document.getElementById('bookSelect').onchange = updateFormState;
 document.getElementById('currentPage').oninput = updateFormProgress;
 
+function toggleNewReader() {
+  const input = document.getElementById('newReaderName');
+  const btn = document.getElementById('newReaderBtn');
+  const select = document.getElementById('readerSelect');
+  if (input.style.display === 'none') {
+    input.style.display = 'block';
+    btn.textContent = '← Use existing name';
+    select.style.display = 'none';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    btn.textContent = '+ Add yourself';
+    select.style.display = 'block';
+    input.value = '';
+  }
+  updateFormState();
+}
+
+function getReaderName() {
+  const newName = document.getElementById('newReaderName');
+  if (newName.style.display !== 'none' && newName.value.trim()) return newName.value.trim();
+  return document.getElementById('readerSelect').value;
+}
+
 function updateFormState() {
-  const reader = document.getElementById('readerSelect').value;
+  const reader = getReaderName();
   const bookTitle = document.getElementById('bookSelect').value;
   const btn = document.getElementById('submitBtn');
 
@@ -548,6 +592,7 @@ function updateFormState() {
       tp.value = existing.totalPages;
     } else {
       document.getElementById('currentPage').value = '';
+      // Auto-fill total pages from book data
       tp.value = book ? (book.totalPages || '') : '';
     }
     tp.disabled = false;
@@ -557,6 +602,9 @@ function updateFormState() {
     btn.disabled = true;
   }
 }
+
+// Also listen for new reader name input
+document.getElementById('newReaderName').oninput = updateFormState;
 
 function updateFormProgress() {
   const cur = parseInt(document.getElementById('currentPage').value) || 0;
@@ -574,7 +622,7 @@ function updateFormProgress() {
 }
 
 document.getElementById('submitBtn').onclick = async () => {
-  const name = document.getElementById('readerSelect').value;
+  const name = getReaderName();
   const bookTitle = document.getElementById('bookSelect').value;
   const currentPage = parseInt(document.getElementById('currentPage').value) || 0;
   const totalPages = parseInt(document.getElementById('totalPages').value) || 0;
