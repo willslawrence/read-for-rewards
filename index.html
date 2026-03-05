@@ -54,7 +54,14 @@
   .tab-panel.active { display:block; }
 
   /* Book Grid */
-  .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .book-grid { display:flex; flex-direction:column; gap:32px; }
+  .book-grid-inner { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .category-section { }
+  .category-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .category-emoji { font-size:22px; }
+  .category-name { font-size:18px; font-weight:700; }
+  .category-count { font-size:12px; color:var(--muted); background:var(--card); padding:3px 10px; border-radius:10px; border:1px solid var(--border); }
+  .category-line { flex:1; height:1px; background:var(--border); }
   .book-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.25s; position:relative; overflow:hidden; }
   .book-card:hover { background:var(--card-hover); border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
 
@@ -268,26 +275,39 @@ const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 
 // ─── PLACEHOLDER DATA (used when sheet not connected) ───
 const PLACEHOLDER_BOOKS = [
-  { title:"Atomic Habits", author:"James Clear", cover:"https://covers.openlibrary.org/b/isbn/0735211299-L.jpg", reward:10, summary:"An easy and proven way to build good habits and break bad ones. Clear reveals practical strategies that will teach you how to form good habits, break bad ones, and master the tiny behaviors that lead to remarkable results.", rating:4.4, genre:"Self-Help", totalPages:320 },
-  { title:"The 7 Habits of Highly Effective People", author:"Stephen R. Covey", cover:"https://covers.openlibrary.org/b/isbn/0743269519-L.jpg", reward:15, summary:"A holistic, integrated, principle-centered approach for solving personal and professional problems. With penetrating insights and practical anecdotes, Covey reveals a step-by-step pathway for living with fairness, integrity, honesty, and human dignity.", rating:4.2, genre:"Leadership", totalPages:381 },
-  { title:"Mere Christianity", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652926-L.jpg", reward:12, summary:"In the classic Mere Christianity, C.S. Lewis explores the common ground upon which all of those of Christian faith stand together. Bringing together his legendary broadcast talks during World War Two from his challenging works on the subject of God.", rating:4.3, genre:"Theology", totalPages:227 },
-  { title:"The Hiding Place", author:"Corrie ten Boom", cover:"https://covers.openlibrary.org/b/isbn/0800794052-L.jpg", reward:10, summary:"The remarkable true story of the most celebrated hiding place of World War II. Corrie ten Boom and her family risked their lives to help Jews escape the Nazi Holocaust — and were caught. This is their story of faith, hope, and love in the face of unimaginable evil.", rating:4.6, genre:"Biography", totalPages:241 },
-  { title:"Thinking, Fast and Slow", author:"Daniel Kahneman", cover:"https://covers.openlibrary.org/b/isbn/0374533555-L.jpg", reward:15, summary:"Kahneman takes us on a groundbreaking tour of the mind and explains the two systems that drive the way we think. System 1 is fast, intuitive, and emotional; System 2 is slower, more deliberative, and more logical.", rating:4.2, genre:"Psychology", totalPages:499 },
-  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads and the ways in which both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets.", rating:4.1, genre:"Finance", totalPages:336 },
-  { title:"The Pursuit of God", author:"A.W. Tozer", cover:"https://covers.openlibrary.org/b/isbn/1600660959-L.jpg", reward:10, summary:"A Christian classic that calls believers to pursue a deeper relationship with God. Tozer diagnoses the state of modern Christianity and pleads for a return to personal, passionate pursuit of God Himself.", rating:4.5, genre:"Devotional", totalPages:128 },
-  { title:"Deep Work", author:"Cal Newport", cover:"https://covers.openlibrary.org/b/isbn/1455586692-L.jpg", reward:12, summary:"Rules for focused success in a distracted world. Newport makes the case that the ability to concentrate without distraction on a cognitively demanding task is becoming increasingly valuable — and increasingly rare.", rating:4.2, genre:"Productivity", totalPages:296 }
+  // Religious
+  { title:"Every Good Endeavor", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/1594632820-L.jpg", reward:12, summary:"In a work world that is increasingly competitive and insecure, Keller shows that the Bible's wisdom is more relevant than ever. He explains why work is both painful and fruitful, and how Christians can find deep satisfaction and meaning in any vocation by connecting their daily labor to God's work in the world.", rating:4.16, genre:"Faith & Work", totalPages:272, category:"Religious" },
+  { title:"The Ruthless Elimination of Hurry", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0525653090-L.jpg", reward:10, summary:"Pastor John Mark Comer discovered he was dangerously close to burnout. Drawing from the teachings of Jesus, he lays out a practical roadmap for slowing down and learning to live an unhurried life of emotional health and spiritual vitality in the chaos of the modern world.", rating:4.24, genre:"Spiritual Life", totalPages:304, category:"Religious" },
+  { title:"The Great Divorce", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652950-L.jpg", reward:8, summary:"C.S. Lewis imagines a bus ride from Hell to Heaven in this theological dream vision. The passengers discover they can stay in Heaven if they let go of a single damning fault. A brilliant exploration of how we choose between self and God, pride and joy, holding on and letting go.", rating:4.15, genre:"Theology", totalPages:160, category:"Religious" },
+  { title:"Loveology", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0310337267-L.jpg", reward:10, summary:"A fresh, biblical look at love, marriage, sex, and the never-ending story of male and female. Comer traces the Bible's narrative from Genesis to Revelation, presenting a theology of sexuality that is both intellectually honest and deeply practical for singles, engaged couples, and the newly married.", rating:3.93, genre:"Relationships", totalPages:256, category:"Religious" },
+  // Thinking
+  { title:"The Anxious Generation", author:"Jonathan Haidt", cover:"https://covers.openlibrary.org/b/isbn/0593655036-L.jpg", reward:15, summary:"Social psychologist Jonathan Haidt lays out the facts about the epidemic of teen mental illness hitting countries worldwide. He investigates how smartphones and social media have rewired childhood, and proposes practical solutions for parents, teachers, and policymakers to reverse the damage.", rating:4.06, genre:"Psychology", totalPages:385, category:"Thinking" },
+  { title:"12 Rules for Life", author:"Jordan B. Peterson", cover:"https://covers.openlibrary.org/b/isbn/0345816021-L.jpg", reward:15, summary:"Renowned psychologist Jordan Peterson provides twelve practical and profound rules for life, drawing from philosophy, psychology, mythology, religion, and personal experience. From standing up straight to telling the truth, each rule is an antidote to the chaos of modern existence.", rating:3.89, genre:"Psychology", totalPages:409, category:"Thinking" },
+  { title:"Animal Farm", author:"George Orwell", cover:"https://covers.openlibrary.org/b/isbn/0451526341-L.jpg", reward:5, summary:"Orwell's timeless allegorical novella about a farm where overworked animals revolt against their human masters, only to fall under an even more oppressive regime of their own making. A scathing satire of totalitarianism and a warning about the corruption of power.", rating:3.98, genre:"Political Satire", totalPages:141, category:"Thinking" },
+  { title:"The Bitcoin Standard", author:"Saifedean Ammous", cover:"https://covers.openlibrary.org/b/isbn/1119473861-L.jpg", reward:12, summary:"The first comprehensive examination of Bitcoin through the lens of economic history. Ammous traces the history of money and explains how Bitcoin represents a decentralized alternative to central banking, offering sound money principles in the digital age.", rating:4.14, genre:"Economics", totalPages:304, category:"Thinking" },
+  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads — his real father and his best friend's father — and how both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets over working for a paycheck.", rating:4.11, genre:"Finance", totalPages:336, category:"Thinking" },
+  { title:"One Rental at a Time", author:"Michael Zuber", cover:"https://covers.openlibrary.org/b/isbn/1793142203-L.jpg", reward:8, summary:"Michael Zuber shares his journey from a regular tech worker to financial independence through rental property investing. A practical, no-nonsense guide to building a real estate portfolio one property at a time, covering deal analysis, financing, management, and scaling.", rating:4.18, genre:"Real Estate", totalPages:170, category:"Thinking" },
+  { title:"Live Not by Lies", author:"Rod Dreher", cover:"https://covers.openlibrary.org/b/isbn/0593087402-L.jpg", reward:12, summary:"Drawing on the experience of Christians who survived Soviet communism, Dreher shows how soft totalitarianism is rising in the West. A manual for Christian dissidents on how to recognize pre-totalitarian conditions, resist cultural pressure, and preserve faith under hostile regimes.", rating:4.20, genre:"Politics & Faith", totalPages:240, category:"Thinking" },
+  { title:"Basic Economics", author:"Thomas Sowell", cover:"https://covers.openlibrary.org/b/isbn/0465060730-L.jpg", reward:15, summary:"Thomas Sowell breaks down fundamental economic principles without jargon, charts, or graphs. With clear explanations of everything from rent control to international trade, this citizen's guide to economics reveals the hidden consequences of political and economic decisions.", rating:4.34, genre:"Economics", totalPages:704, category:"Thinking" },
+  // Fiction
+  { title:"The Eye of the World", author:"Robert Jordan", cover:"https://covers.openlibrary.org/b/isbn/0812511816-L.jpg", reward:15, summary:"The first book in the legendary Wheel of Time series. In a world where the Dark One stirs, five young villagers are swept into an epic quest when a mysterious woman reveals they hold the key to an ancient prophecy. A sweeping fantasy of destiny, magic, and the eternal battle between Light and Shadow.", rating:4.19, genre:"Epic Fantasy", totalPages:688, category:"Fiction" },
+  { title:"Age of Myth", author:"Michael J. Sullivan", cover:"https://covers.openlibrary.org/b/isbn/1101965339-L.jpg", reward:12, summary:"The first book in the Legends of the First Empire series. For thousands of years, humans have worshipped the Fhrey as gods — until the day a Fhrey is killed by a human. Now the balance of power shifts, and an unlikely group must discover the truth about the gods they've always served.", rating:4.21, genre:"Epic Fantasy", totalPages:432, category:"Fiction" },
+  { title:"Out of the Silent Planet", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0007157150-L.jpg", reward:8, summary:"The first novel in C.S. Lewis's Space Trilogy. Dr. Ransom, a Cambridge philologist, is kidnapped and taken to Malacandra (Mars), where he discovers a world of unfallen creatures and encounters a cosmic spiritual reality that reshapes his understanding of the universe and humanity's place in it.", rating:3.93, genre:"Science Fiction", totalPages:160, category:"Fiction" },
+  { title:"Project Hail Mary", author:"Andy Weir", cover:"https://covers.openlibrary.org/b/isbn/0593135202-L.jpg", reward:15, summary:"A lone astronaut wakes up on a spaceship with no memory of who he is or why he's there. As he pieces together the clues, he realizes he's humanity's last hope to solve an extinction-level threat to Earth. A gripping, science-driven adventure about friendship, sacrifice, and survival.", rating:4.49, genre:"Science Fiction", totalPages:476, category:"Fiction" },
+  { title:"Mistborn: The Final Empire", author:"Brandon Sanderson", cover:"https://covers.openlibrary.org/b/isbn/0765377136-L.jpg", reward:15, summary:"For a thousand years, ash has fallen and the Lord Ruler has reigned with absolute power. A thieving crew led by a half-Skaa rebel and a young girl who discovers she has extraordinary powers plot an audacious heist: overthrow the immortal emperor. A masterclass in fantasy world-building.", rating:4.49, genre:"Epic Fantasy", totalPages:664, category:"Fiction" },
+  { title:"The Frugal Wizard's Handbook for Surviving Medieval England", author:"Brandon Sanderson", cover:"https://covers.openlibrary.org/b/isbn/1250899672-L.jpg", reward:10, summary:"A man awakes in a clearing in what appears to be medieval England with no memory of who he is or how he got there. His only clue is a destroyed guidebook. Part sci-fi, part fish-out-of-water comedy, Sanderson delivers an inventive standalone adventure about identity, redemption, and time-displaced tourism.", rating:3.62, genre:"Sci-Fi Fantasy", totalPages:378, category:"Fiction" }
 ];
 
 const PLACEHOLDER_READERS = [
-  { name:"Ezra", book:"Atomic Habits", startDate:"2026-02-15", currentPage:180, totalPages:320, status:"reading" },
-  { name:"Ezra", book:"Mere Christianity", startDate:"2026-01-10", currentPage:227, totalPages:227, status:"completed" },
-  { name:"Levi", book:"Atomic Habits", startDate:"2026-02-20", currentPage:95, totalPages:320, status:"reading" },
-  { name:"Levi", book:"Rich Dad Poor Dad", startDate:"2026-01-05", currentPage:336, totalPages:336, status:"completed" },
-  { name:"Will", book:"Deep Work", startDate:"2026-03-01", currentPage:45, totalPages:296, status:"reading" },
-  { name:"Will", book:"The 7 Habits of Highly Effective People", startDate:"2026-01-20", currentPage:381, totalPages:381, status:"completed" },
-  { name:"Will", book:"Thinking, Fast and Slow", startDate:"2026-02-01", currentPage:499, totalPages:499, status:"completed" },
-  { name:"Sarah", book:"The Hiding Place", startDate:"2026-02-25", currentPage:132, totalPages:241, status:"reading" },
-  { name:"Sarah", book:"The Pursuit of God", startDate:"2026-01-15", currentPage:128, totalPages:128, status:"completed" },
+  { name:"Ezra", book:"Animal Farm", startDate:"2026-02-15", currentPage:95, totalPages:141, status:"reading" },
+  { name:"Ezra", book:"The Great Divorce", startDate:"2026-01-10", currentPage:160, totalPages:160, status:"completed" },
+  { name:"Levi", book:"The Eye of the World", startDate:"2026-02-20", currentPage:210, totalPages:688, status:"reading" },
+  { name:"Levi", book:"Animal Farm", startDate:"2026-01-05", currentPage:141, totalPages:141, status:"completed" },
+  { name:"Will", book:"The Ruthless Elimination of Hurry", startDate:"2026-03-01", currentPage:120, totalPages:304, status:"reading" },
+  { name:"Will", book:"12 Rules for Life", startDate:"2026-01-20", currentPage:409, totalPages:409, status:"completed" },
+  { name:"Will", book:"Mistborn: The Final Empire", startDate:"2026-02-01", currentPage:664, totalPages:664, status:"completed" },
+  { name:"Sarah", book:"Every Good Endeavor", startDate:"2026-02-25", currentPage:85, totalPages:272, status:"reading" },
+  { name:"Sarah", book:"Loveology", startDate:"2026-01-15", currentPage:256, totalPages:256, status:"completed" },
   { name:"Ben", book:"Rich Dad Poor Dad", startDate:"2026-03-01", currentPage:60, totalPages:336, status:"reading" },
 ];
 
@@ -396,7 +416,8 @@ async function loadData() {
       summary: b.summary || '',
       rating: parseFloat(b.goodreads_rating || b.rating) || 0,
       genre: b.genre || '',
-      totalPages: parseInt(b.total_pages) || 0
+      totalPages: parseInt(b.total_pages) || 0,
+      category: b.category || ''
     }));
 
     readers = readersData.map(r => ({
@@ -461,9 +482,41 @@ function coverHTML(book, size) {
   return `<div class="placeholder-cover">${book.title[0]}</div>`;
 }
 
+const CATEGORY_META = {
+  'Religious': { emoji: '✝️', color: '#a78bfa' },
+  'Thinking': { emoji: '🧠', color: '#60a5fa' },
+  'Fiction': { emoji: '🐉', color: '#f97316' }
+};
+
 function renderBooks() {
   const grid = document.getElementById('bookGrid');
-  grid.innerHTML = books.map((b, i) => {
+  const categories = [...new Set(books.map(b => b.category).filter(Boolean))];
+  
+  // If no categories, render flat grid
+  if (categories.length === 0) {
+    grid.innerHTML = renderBookCards(books);
+    return;
+  }
+  
+  grid.innerHTML = categories.map(cat => {
+    const catBooks = books.filter(b => b.category === cat);
+    const meta = CATEGORY_META[cat] || { emoji: '📖', color: 'var(--accent)' };
+    return `
+      <div class="category-section">
+        <div class="category-header">
+          <span class="category-emoji">${meta.emoji}</span>
+          <span class="category-name">${cat}</span>
+          <span class="category-count">${catBooks.length} books</span>
+          <span class="category-line"></span>
+        </div>
+        <div class="book-grid-inner">${renderBookCards(catBooks)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderBookCards(bookList) {
+  return bookList.map(b => {
+    const i = books.indexOf(b);
     const br = getBookReaders(b.title);
     const active = br.filter(r => r.status === 'reading').length;
     const done = br.filter(r => r.status === 'completed').length;
