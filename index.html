@@ -53,17 +53,24 @@
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
 
+  /* Category filter toggles */
+  .cat-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .cat-btn { padding:7px 16px; border-radius:20px; border:2px solid var(--border); background:var(--card); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; color:var(--muted); }
+  .cat-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .cat-btn.active { color:#fff; }
+  .cat-btn.active[data-cat="all"] { background:var(--accent); border-color:var(--accent); }
+  .cat-btn.active[data-cat="religious"] { background:#a78bfa; border-color:#a78bfa; }
+  .cat-btn.active[data-cat="thinking"] { background:#60a5fa; border-color:#60a5fa; }
+  .cat-btn.active[data-cat="fiction"] { background:#f97316; border-color:#f97316; }
+
   /* Book Grid */
-  .book-grid { display:flex; flex-direction:column; gap:32px; }
-  .book-grid-inner { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
-  .category-section { }
-  .category-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  .category-emoji { font-size:22px; }
-  .category-name { font-size:18px; font-weight:700; }
-  .category-count { font-size:12px; color:var(--muted); background:var(--card); padding:3px 10px; border-radius:10px; border:1px solid var(--border); }
-  .category-line { flex:1; height:1px; background:var(--border); }
-  .book-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.25s; position:relative; overflow:hidden; }
+  .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .book-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden; }
   .book-card:hover { background:var(--card-hover); border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
+  .book-card.dimmed { opacity:0.2; filter:grayscale(80%); transform:scale(0.98); }
+  .book-card.cat-religious { border-left:3px solid #a78bfa; }
+  .book-card.cat-thinking { border-left:3px solid #60a5fa; }
+  .book-card.cat-fiction { border-left:3px solid #f97316; }
 
   .book-card-inner { display:flex; gap:16px; }
   .book-cover { width:90px; height:130px; border-radius:8px; overflow:hidden; flex-shrink:0; background:var(--surface); display:flex; align-items:center; justify-content:center; }
@@ -186,6 +193,12 @@
 <div class="content">
   <!-- Books Tab -->
   <div class="tab-panel active" id="panel-books">
+    <div class="cat-filters" id="catFilters">
+      <button class="cat-btn active" data-cat="all" onclick="filterCat('all')">All</button>
+      <button class="cat-btn" data-cat="religious" onclick="filterCat('religious')">✝️ Religious</button>
+      <button class="cat-btn" data-cat="thinking" onclick="filterCat('thinking')">🧠 Thinking</button>
+      <button class="cat-btn" data-cat="fiction" onclick="filterCat('fiction')">🐉 Fiction</button>
+    </div>
     <div class="loading" id="booksLoading"><div class="spinner"></div>Loading books…</div>
     <div class="book-grid" id="bookGrid"></div>
   </div>
@@ -482,46 +495,17 @@ function coverHTML(book, size) {
   return `<div class="placeholder-cover">${book.title[0]}</div>`;
 }
 
-const CATEGORY_META = {
-  'Religious': { emoji: '✝️', color: '#a78bfa' },
-  'Thinking': { emoji: '🧠', color: '#60a5fa' },
-  'Fiction': { emoji: '🐉', color: '#f97316' }
-};
+let activeCat = 'all';
 
 function renderBooks() {
   const grid = document.getElementById('bookGrid');
-  const categories = [...new Set(books.map(b => b.category).filter(Boolean))];
-  
-  // If no categories, render flat grid
-  if (categories.length === 0) {
-    grid.innerHTML = renderBookCards(books);
-    return;
-  }
-  
-  grid.innerHTML = categories.map(cat => {
-    const catBooks = books.filter(b => b.category === cat);
-    const meta = CATEGORY_META[cat] || { emoji: '📖', color: 'var(--accent)' };
-    return `
-      <div class="category-section">
-        <div class="category-header">
-          <span class="category-emoji">${meta.emoji}</span>
-          <span class="category-name">${cat}</span>
-          <span class="category-count">${catBooks.length} books</span>
-          <span class="category-line"></span>
-        </div>
-        <div class="book-grid-inner">${renderBookCards(catBooks)}</div>
-      </div>`;
-  }).join('');
-}
-
-function renderBookCards(bookList) {
-  return bookList.map(b => {
-    const i = books.indexOf(b);
+  grid.innerHTML = books.map((b, i) => {
     const br = getBookReaders(b.title);
     const active = br.filter(r => r.status === 'reading').length;
     const done = br.filter(r => r.status === 'completed').length;
+    const catClass = b.category ? 'cat-' + b.category.toLowerCase() : '';
     return `
-      <div class="book-card" onclick="openModal(${i})">
+      <div class="book-card ${catClass}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" onclick="openModal(${i})">
         <div class="book-card-inner">
           <div class="book-cover">${coverHTML(b)}</div>
           <div class="book-info">
@@ -537,6 +521,44 @@ function renderBookCards(bookList) {
         </div>
       </div>`;
   }).join('');
+  // Re-apply active filter
+  if (activeCat !== 'all') filterCat(activeCat);
+}
+
+function filterCat(cat) {
+  activeCat = cat;
+  // Update button states
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  const grid = document.getElementById('bookGrid');
+  if (!grid) return;
+  const cards = Array.from(grid.children);
+  
+  if (cat === 'all') {
+    // Restore original order
+    cards.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    cards.forEach(card => {
+      card.classList.remove('dimmed');
+      grid.appendChild(card);
+    });
+  } else {
+    const matching = [];
+    const dimmed = [];
+    cards.forEach(card => {
+      if (card.dataset.category === cat) {
+        card.classList.remove('dimmed');
+        matching.push(card);
+      } else {
+        card.classList.add('dimmed');
+        dimmed.push(card);
+      }
+    });
+    matching.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    dimmed.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    matching.forEach(c => grid.appendChild(c));
+    dimmed.forEach(c => grid.appendChild(c));
+  }
 }
 
 function openModal(idx) {
