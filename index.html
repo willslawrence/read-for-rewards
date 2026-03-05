@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read for Rewards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0F1A;
+    --card: #131825;
+    --card-hover: #1a2035;
+    --border: #1e2740;
+    --text: #e8eaf0;
+    --muted: #8892a8;
+    --accent: #6366f1;
+    --accent-glow: rgba(99,102,241,0.15);
+    --green: #22c55e;
+    --gold: #f59e0b;
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --surface: #0f1320;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,sans-serif; min-height:100vh; }
+
+  /* Header */
+  .header { padding:32px 24px 0; max-width:1200px; margin:0 auto; }
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:12px; }
+  .header h1 { font-size:28px; font-weight:700; display:flex; align-items:center; gap:10px; }
+  .header h1 span.emoji { font-size:32px; }
+  .header .subtitle { color:var(--muted); font-size:14px; margin-bottom:20px; }
+  .stats-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .stat-pill { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 20px; display:flex; align-items:center; gap:10px; }
+  .stat-pill .stat-icon { font-size:20px; }
+  .stat-pill .stat-val { font-size:22px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .stat-pill .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .stat-val.gold { color:var(--gold); }
+  .stat-val.green { color:var(--green); }
+  .stat-val.blue { color:var(--blue); }
+  .stat-val.purple { color:var(--purple); }
+
+  /* Tabs */
+  .tabs { display:flex; gap:4px; padding:0 24px; max-width:1200px; margin:0 auto 24px; border-bottom:1px solid var(--border); }
+  .tab { padding:12px 20px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* Content */
+  .content { padding:0 24px 48px; max-width:1200px; margin:0 auto; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* Book Grid */
+  .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .book-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.25s; position:relative; overflow:hidden; }
+  .book-card:hover { background:var(--card-hover); border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
+
+  .book-card-inner { display:flex; gap:16px; }
+  .book-cover { width:90px; height:130px; border-radius:8px; overflow:hidden; flex-shrink:0; background:var(--surface); display:flex; align-items:center; justify-content:center; }
+  .book-cover img { width:100%; height:100%; object-fit:cover; }
+  .book-cover .placeholder-cover { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:36px; background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; font-weight:700; }
+  .book-info { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .book-title { font-size:16px; font-weight:700; margin-bottom:4px; line-height:1.3; }
+  .book-author { font-size:13px; color:var(--muted); margin-bottom:10px; }
+  .book-meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:auto; }
+  .reward-badge { background:linear-gradient(135deg,#f59e0b,#d97706); color:#1a1a2e; font-size:12px; font-weight:700; padding:4px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:4px; }
+  .readers-badge { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  .readers-badge .dot { width:6px; height:6px; border-radius:50%; }
+  .dot-active { background:var(--green); }
+  .dot-completed { background:var(--blue); }
+  .stars { color:var(--gold); font-size:13px; letter-spacing:1px; }
+
+  /* Expanded Card Modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; max-width:600px; width:100%; max-height:85vh; overflow-y:auto; padding:28px; position:relative; }
+  .modal-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:8px; background:var(--surface); border:1px solid var(--border); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .modal-close:hover { color:var(--text); border-color:var(--accent); }
+  .modal-header { display:flex; gap:20px; margin-bottom:20px; }
+  .modal-cover { width:120px; height:175px; border-radius:10px; overflow:hidden; flex-shrink:0; }
+  .modal-cover img { width:100%; height:100%; object-fit:cover; }
+  .modal-cover .placeholder-cover { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:48px; background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; font-weight:700; }
+  .modal-title { font-size:22px; font-weight:700; margin-bottom:4px; }
+  .modal-author { font-size:14px; color:var(--muted); margin-bottom:12px; }
+  .modal-stars { margin-bottom:12px; }
+  .modal-reward { margin-bottom:8px; }
+  .modal-summary { color:var(--muted); font-size:14px; line-height:1.7; margin-bottom:24px; border-top:1px solid var(--border); padding-top:20px; }
+  .modal-readers { border-top:1px solid var(--border); padding-top:20px; }
+  .modal-readers h3 { font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .reader-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(30,39,64,0.5); }
+  .reader-row:last-child { border-bottom:none; }
+  .reader-avatar { width:32px; height:32px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .reader-info { flex:1; }
+  .reader-name { font-size:13px; font-weight:600; }
+  .reader-status { font-size:11px; color:var(--muted); }
+  .reader-progress { width:80px; }
+  .progress-bar { height:6px; background:var(--surface); border-radius:3px; overflow:hidden; margin-bottom:2px; }
+  .progress-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+  .progress-fill.reading { background:linear-gradient(90deg,var(--accent),var(--purple)); }
+  .progress-fill.completed { background:var(--green); }
+  .progress-pct { font-size:10px; color:var(--muted); text-align:right; font-family:'JetBrains Mono',monospace; }
+
+  /* Update Progress Tab */
+  .update-panel { max-width:500px; }
+  .update-panel h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .update-panel .desc { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  .form-group { margin-bottom:20px; }
+  .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .form-group select, .form-group input { width:100%; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+  .form-group select:focus, .form-group input:focus { border-color:var(--accent); }
+  .form-group select { cursor:pointer; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+  .form-row { display:flex; gap:12px; }
+  .form-row .form-group { flex:1; }
+  .btn-submit { background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; border:none; padding:14px 28px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif; width:100%; }
+  .btn-submit:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(99,102,241,0.3); }
+  .btn-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+  .form-msg { margin-top:12px; padding:12px 16px; border-radius:10px; font-size:13px; display:none; }
+  .form-msg.success { display:block; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); color:var(--green); }
+  .form-msg.error { display:block; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; }
+
+  /* Leaderboard */
+  .leaderboard { max-width:500px; }
+  .leaderboard h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .leaderboard .desc { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  .lb-row { display:flex; align-items:center; gap:16px; padding:14px 16px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; transition:all 0.2s; }
+  .lb-row:hover { border-color:var(--accent); }
+  .lb-rank { font-size:20px; font-weight:700; font-family:'JetBrains Mono',monospace; width:36px; text-align:center; }
+  .lb-rank.gold { color:var(--gold); }
+  .lb-rank.silver { color:#94a3b8; }
+  .lb-rank.bronze { color:#d97706; }
+  .lb-avatar { width:40px; height:40px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .lb-info { flex:1; }
+  .lb-name { font-size:14px; font-weight:600; }
+  .lb-detail { font-size:12px; color:var(--muted); }
+  .lb-earned { font-size:16px; font-weight:700; color:var(--gold); font-family:'JetBrains Mono',monospace; }
+
+  /* Loading */
+  .loading { text-align:center; padding:60px 20px; color:var(--muted); }
+  .loading .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Responsive */
+  @media(max-width:600px) {
+    .header h1 { font-size:22px; }
+    .stats-row { gap:8px; }
+    .stat-pill { padding:10px 14px; }
+    .stat-pill .stat-val { font-size:18px; }
+    .book-grid { grid-template-columns:1fr; }
+    .modal { padding:20px; }
+    .modal-header { flex-direction:column; align-items:center; text-align:center; }
+    .tabs { overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1><span class="emoji">📚</span> Read for Rewards</h1>
+  </div>
+  <p class="subtitle">Earn rewards for completing great books. Track your progress and discover what to read next.</p>
+  <div class="stats-row" id="statsRow">
+    <div class="stat-pill"><span class="stat-icon">📖</span><div><div class="stat-val blue" id="statBooks">—</div><div class="stat-label">Books</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">👥</span><div><div class="stat-val purple" id="statReaders">—</div><div class="stat-label">Readers</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">✅</span><div><div class="stat-val green" id="statCompleted">—</div><div class="stat-label">Completed</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">💰</span><div><div class="stat-val gold" id="statEarned">$0</div><div class="stat-label">Earned</div></div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="books">📚 Books</div>
+  <div class="tab" data-tab="progress">📝 Update Progress</div>
+  <div class="tab" data-tab="leaderboard">🏆 Leaderboard</div>
+</div>
+
+<div class="content">
+  <!-- Books Tab -->
+  <div class="tab-panel active" id="panel-books">
+    <div class="loading" id="booksLoading"><div class="spinner"></div>Loading books…</div>
+    <div class="book-grid" id="bookGrid"></div>
+  </div>
+
+  <!-- Update Progress Tab -->
+  <div class="tab-panel" id="panel-progress">
+    <div class="update-panel">
+      <h2>📝 Update Your Reading Progress</h2>
+      <p class="desc">Select your name and the book you're reading, then update your current page.</p>
+      <div class="form-group">
+        <label>Your Name</label>
+        <select id="readerSelect"><option value="">Select your name…</option></select>
+      </div>
+      <div class="form-group">
+        <label>Book</label>
+        <select id="bookSelect"><option value="">Select a book…</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Current Page</label>
+          <input type="number" id="currentPage" placeholder="e.g. 142" min="0">
+        </div>
+        <div class="form-group">
+          <label>Total Pages</label>
+          <input type="number" id="totalPages" placeholder="e.g. 320" min="1" disabled>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label>Progress</label>
+        <div class="progress-bar" style="height:10px;border-radius:5px;">
+          <div class="progress-fill reading" id="formProgress" style="width:0%;border-radius:5px;"></div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;" id="formPct">0%</div>
+      </div>
+      <button class="btn-submit" id="submitBtn" disabled>Update Progress</button>
+      <div class="form-msg" id="formMsg"></div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Tab -->
+  <div class="tab-panel" id="panel-leaderboard">
+    <div class="leaderboard">
+      <h2>🏆 Leaderboard</h2>
+      <p class="desc">Top readers by rewards earned from completed books.</p>
+      <div id="leaderboardList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Book Detail Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-header">
+      <div class="modal-cover" id="modalCover"></div>
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-author" id="modalAuthor"></div>
+        <div class="modal-stars" id="modalStars"></div>
+        <div class="modal-reward" id="modalReward"></div>
+        <div class="readers-badge" id="modalReaderCount"></div>
+      </div>
+    </div>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-readers" id="modalReaders">
+      <h3>👥 Readers</h3>
+      <div id="modalReaderList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───
+// Replace these after creating the Google Sheet
+const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+const BOOKS_GID = '0';
+const READERS_GID = '1';
+const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+// CSV base for reading
+const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=`;
+
+// ─── PLACEHOLDER DATA (used when sheet not connected) ───
+const PLACEHOLDER_BOOKS = [
+  { title:"Atomic Habits", author:"James Clear", cover:"https://covers.openlibrary.org/b/isbn/0735211299-L.jpg", reward:10, summary:"An easy and proven way to build good habits and break bad ones. Clear reveals practical strategies that will teach you how to form good habits, break bad ones, and master the tiny behaviors that lead to remarkable results.", rating:4.4, genre:"Self-Help" },
+  { title:"The 7 Habits of Highly Effective People", author:"Stephen R. Covey", cover:"https://covers.openlibrary.org/b/isbn/0743269519-L.jpg", reward:15, summary:"A holistic, integrated, principle-centered approach for solving personal and professional problems. With penetrating insights and practical anecdotes, Covey reveals a step-by-step pathway for living with fairness, integrity, honesty, and human dignity.", rating:4.2, genre:"Leadership" },
+  { title:"Mere Christianity", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652926-L.jpg", reward:12, summary:"In the classic Mere Christianity, C.S. Lewis explores the common ground upon which all of those of Christian faith stand together. Bringing together his legendary broadcast talks during World War Two from his challenging works on the subject of God.", rating:4.3, genre:"Theology" },
+  { title:"The Hiding Place", author:"Corrie ten Boom", cover:"https://covers.openlibrary.org/b/isbn/0800794052-L.jpg", reward:10, summary:"The remarkable true story of the most celebrated hiding place of World War II. Corrie ten Boom and her family risked their lives to help Jews escape the Nazi Holocaust — and were caught. This is their story of faith, hope, and love in the face of unimaginable evil.", rating:4.6, genre:"Biography" },
+  { title:"Thinking, Fast and Slow", author:"Daniel Kahneman", cover:"https://covers.openlibrary.org/b/isbn/0374533555-L.jpg", reward:15, summary:"Kahneman takes us on a groundbreaking tour of the mind and explains the two systems that drive the way we think. System 1 is fast, intuitive, and emotional; System 2 is slower, more deliberative, and more logical.", rating:4.2, genre:"Psychology" },
+  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads and the ways in which both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets.", rating:4.1, genre:"Finance" },
+  { title:"The Pursuit of God", author:"A.W. Tozer", cover:"https://covers.openlibrary.org/b/isbn/1600660959-L.jpg", reward:10, summary:"A Christian classic that calls believers to pursue a deeper relationship with God. Tozer diagnoses the state of modern Christianity and pleads for a return to personal, passionate pursuit of God Himself.", rating:4.5, genre:"Devotional" },
+  { title:"Deep Work", author:"Cal Newport", cover:"https://covers.openlibrary.org/b/isbn/1455586692-L.jpg", reward:12, summary:"Rules for focused success in a distracted world. Newport makes the case that the ability to concentrate without distraction on a cognitively demanding task is becoming increasingly valuable — and increasingly rare.", rating:4.2, genre:"Productivity" }
+];
+
+const PLACEHOLDER_READERS = [
+  { name:"Ezra", book:"Atomic Habits", startDate:"2026-02-15", currentPage:180, totalPages:320, status:"reading" },
+  { name:"Ezra", book:"Mere Christianity", startDate:"2026-01-10", currentPage:227, totalPages:227, status:"completed" },
+  { name:"Levi", book:"Atomic Habits", startDate:"2026-02-20", currentPage:95, totalPages:320, status:"reading" },
+  { name:"Levi", book:"Rich Dad Poor Dad", startDate:"2026-01-05", currentPage:336, totalPages:336, status:"completed" },
+  { name:"Will", book:"Deep Work", startDate:"2026-03-01", currentPage:45, totalPages:296, status:"reading" },
+  { name:"Will", book:"The 7 Habits of Highly Effective People", startDate:"2026-01-20", currentPage:381, totalPages:381, status:"completed" },
+  { name:"Will", book:"Thinking, Fast and Slow", startDate:"2026-02-01", currentPage:499, totalPages:499, status:"completed" },
+  { name:"Sarah", book:"The Hiding Place", startDate:"2026-02-25", currentPage:132, totalPages:241, status:"reading" },
+  { name:"Sarah", book:"The Pursuit of God", startDate:"2026-01-15", currentPage:128, totalPages:128, status:"completed" },
+  { name:"Ben", book:"Rich Dad Poor Dad", startDate:"2026-03-01", currentPage:60, totalPages:336, status:"reading" },
+];
+
+// ─── STATE ───
+let books = [];
+let readers = [];
+let useSheet = false;
+
+// ─── CSV PARSER ───
+function parseCSV(text) {
+  const lines = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i+1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (c === ',' && !inQuotes) {
+      lines.push(current); current = '';
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
+      if (current || lines.length) { lines.push(current); }
+      if (lines.length) { yield_row(lines); }
+      lines.length = 0; current = '';
+      if (c === '\r' && text[i+1] === '\n') i++;
+    } else { current += c; }
+  }
+  if (current || lines.length) { lines.push(current); }
+
+  // Collect all rows
+  const allRows = [];
+  function yield_row(fields) { allRows.push([...fields]); }
+
+  // Re-parse properly
+  return parseCSVProper(text);
+}
+
+function parseCSVProper(text) {
+  const rows = [];
+  let i = 0;
+  while (i < text.length) {
+    const row = [];
+    while (i < text.length) {
+      let val = '';
+      if (text[i] === '"') {
+        i++;
+        while (i < text.length) {
+          if (text[i] === '"') {
+            if (text[i+1] === '"') { val += '"'; i += 2; }
+            else { i++; break; }
+          } else { val += text[i]; i++; }
+        }
+      } else {
+        while (i < text.length && text[i] !== ',' && text[i] !== '\n' && text[i] !== '\r') {
+          val += text[i]; i++;
+        }
+      }
+      row.push(val.trim());
+      if (i < text.length && text[i] === ',') { i++; }
+      else break;
+    }
+    if (text[i] === '\r') i++;
+    if (text[i] === '\n') i++;
+    if (row.length > 0 && row.some(c => c)) rows.push(row);
+  }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z0-9]/g,'_'));
+  return rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h,idx) => obj[h] = r[idx] || '');
+    return obj;
+  });
+}
+
+// ─── DATA LOADING ───
+async function loadData() {
+  try {
+    if (SHEET_ID === 'YOUR_SHEET_ID_HERE') throw new Error('No sheet configured');
+
+    const [booksResp, readersResp] = await Promise.all([
+      fetch(CSV_BASE + BOOKS_GID).then(r => { if(!r.ok) throw new Error(); return r.text(); }),
+      fetch(CSV_BASE + READERS_GID).then(r => { if(!r.ok) throw new Error(); return r.text(); })
+    ]);
+
+    const booksData = parseCSVProper(booksResp);
+    const readersData = parseCSVProper(readersResp);
+
+    books = booksData.map(b => ({
+      title: b.title || '',
+      author: b.author || '',
+      cover: b.cover_url || b.cover || '',
+      reward: parseFloat(b.reward) || 0,
+      summary: b.summary || '',
+      rating: parseFloat(b.goodreads_rating || b.rating) || 0,
+      genre: b.genre || ''
+    }));
+
+    readers = readersData.map(r => ({
+      name: r.name || r.reader_name || '',
+      book: r.book || r.book_title || '',
+      startDate: r.start_date || '',
+      currentPage: parseInt(r.current_page) || 0,
+      totalPages: parseInt(r.total_pages) || 0,
+      status: r.status || 'reading'
+    }));
+
+    useSheet = true;
+  } catch(e) {
+    console.log('Using placeholder data:', e.message);
+    books = PLACEHOLDER_BOOKS;
+    readers = PLACEHOLDER_READERS;
+    useSheet = false;
+  }
+  render();
+}
+
+// ─── RENDER ───
+function render() {
+  renderStats();
+  renderBooks();
+  renderForm();
+  renderLeaderboard();
+  document.getElementById('booksLoading').style.display = 'none';
+}
+
+function renderStats() {
+  const uniqueReaders = [...new Set(readers.map(r => r.name))];
+  const completed = readers.filter(r => r.status === 'completed');
+  const earned = completed.reduce((sum, r) => {
+    const book = books.find(b => b.title === r.book);
+    return sum + (book ? book.reward : 0);
+  }, 0);
+
+  document.getElementById('statBooks').textContent = books.length;
+  document.getElementById('statReaders').textContent = uniqueReaders.length;
+  document.getElementById('statCompleted').textContent = completed.length;
+  document.getElementById('statEarned').textContent = '$' + earned;
+}
+
+function getBookReaders(title) {
+  return readers.filter(r => r.book === title);
+}
+
+function renderStars(rating) {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.3;
+  let s = '';
+  for (let i = 0; i < full; i++) s += '★';
+  if (half) s += '☆';
+  return `<span class="stars">${s}</span> <span style="color:var(--muted);font-size:12px;">${rating.toFixed(1)}</span>`;
+}
+
+function coverHTML(book, size) {
+  if (book.cover) {
+    return `<img src="${book.cover}" alt="${book.title}" onerror="this.parentElement.innerHTML='<div class=placeholder-cover>${book.title[0]}</div>'">`;
+  }
+  return `<div class="placeholder-cover">${book.title[0]}</div>`;
+}
+
+function renderBooks() {
+  const grid = document.getElementById('bookGrid');
+  grid.innerHTML = books.map((b, i) => {
+    const br = getBookReaders(b.title);
+    const active = br.filter(r => r.status === 'reading').length;
+    const done = br.filter(r => r.status === 'completed').length;
+    return `
+      <div class="book-card" onclick="openModal(${i})">
+        <div class="book-card-inner">
+          <div class="book-cover">${coverHTML(b)}</div>
+          <div class="book-info">
+            <div class="book-title">${b.title}</div>
+            <div class="book-author">by ${b.author}</div>
+            <div style="margin-bottom:6px;">${renderStars(b.rating)}</div>
+            <div class="book-meta">
+              <div class="reward-badge">💰 $${b.reward}</div>
+              ${active ? `<div class="readers-badge"><span class="dot dot-active"></span>${active} reading</div>` : ''}
+              ${done ? `<div class="readers-badge"><span class="dot dot-completed"></span>${done} done</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openModal(idx) {
+  const b = books[idx];
+  const br = getBookReaders(b.title);
+
+  document.getElementById('modalCover').innerHTML = coverHTML(b);
+  document.getElementById('modalTitle').textContent = b.title;
+  document.getElementById('modalAuthor').textContent = 'by ' + b.author;
+  document.getElementById('modalStars').innerHTML = renderStars(b.rating);
+  document.getElementById('modalReward').innerHTML = `<div class="reward-badge" style="font-size:14px;">💰 $${b.reward} reward</div>`;
+
+  const active = br.filter(r => r.status === 'reading').length;
+  const done = br.filter(r => r.status === 'completed').length;
+  document.getElementById('modalReaderCount').innerHTML = `
+    ${active ? `<span class="dot dot-active"></span>${active} reading` : ''}
+    ${active && done ? '&nbsp;·&nbsp;' : ''}
+    ${done ? `<span class="dot dot-completed"></span>${done} completed` : ''}
+    ${!active && !done ? '<span style="color:var(--muted)">No readers yet</span>' : ''}
+  `;
+
+  document.getElementById('modalSummary').textContent = b.summary;
+
+  const list = document.getElementById('modalReaderList');
+  if (br.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No one has started this book yet. Be the first!</div>';
+  } else {
+    list.innerHTML = br.map(r => {
+      const pct = r.totalPages ? Math.round((r.currentPage / r.totalPages) * 100) : 0;
+      const isComplete = r.status === 'completed' || pct >= 100;
+      return `
+        <div class="reader-row">
+          <div class="reader-avatar">${r.name[0]}</div>
+          <div class="reader-info">
+            <div class="reader-name">${r.name}</div>
+            <div class="reader-status">${isComplete ? '✅ Completed' : `📖 Page ${r.currentPage} of ${r.totalPages}`} · Started ${r.startDate}</div>
+          </div>
+          <div class="reader-progress">
+            <div class="progress-bar"><div class="progress-fill ${isComplete ? 'completed' : 'reading'}" style="width:${Math.min(pct,100)}%"></div></div>
+            <div class="progress-pct">${Math.min(pct,100)}%</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+document.getElementById('modalClose').onclick = () => document.getElementById('modalOverlay').classList.remove('open');
+document.getElementById('modalOverlay').onclick = (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); };
+
+// ─── FORM ───
+function renderForm() {
+  const readerSelect = document.getElementById('readerSelect');
+  const bookSelect = document.getElementById('bookSelect');
+  const uniqueReaders = [...new Set(readers.map(r => r.name))].sort();
+
+  readerSelect.innerHTML = '<option value="">Select your name…</option>' +
+    uniqueReaders.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  bookSelect.innerHTML = '<option value="">Select a book…</option>' +
+    books.map(b => `<option value="${b.title}">${b.title}</option>`).join('');
+}
+
+document.getElementById('readerSelect').onchange = updateFormState;
+document.getElementById('bookSelect').onchange = updateFormState;
+document.getElementById('currentPage').oninput = updateFormProgress;
+
+function updateFormState() {
+  const reader = document.getElementById('readerSelect').value;
+  const bookTitle = document.getElementById('bookSelect').value;
+  const btn = document.getElementById('submitBtn');
+
+  if (reader && bookTitle) {
+    const existing = readers.find(r => r.name === reader && r.book === bookTitle);
+    const book = books.find(b => b.title === bookTitle);
+    const tp = document.getElementById('totalPages');
+
+    if (existing) {
+      document.getElementById('currentPage').value = existing.currentPage;
+      tp.value = existing.totalPages;
+    } else {
+      document.getElementById('currentPage').value = '';
+      tp.value = book ? (book.totalPages || '') : '';
+    }
+    tp.disabled = false;
+    btn.disabled = false;
+    updateFormProgress();
+  } else {
+    btn.disabled = true;
+  }
+}
+
+function updateFormProgress() {
+  const cur = parseInt(document.getElementById('currentPage').value) || 0;
+  const tot = parseInt(document.getElementById('totalPages').value) || 1;
+  const pct = Math.min(Math.round((cur / tot) * 100), 100);
+  document.getElementById('formProgress').style.width = pct + '%';
+  document.getElementById('formPct').textContent = pct + '%';
+  if (pct >= 100) {
+    document.getElementById('formProgress').classList.remove('reading');
+    document.getElementById('formProgress').classList.add('completed');
+  } else {
+    document.getElementById('formProgress').classList.add('reading');
+    document.getElementById('formProgress').classList.remove('completed');
+  }
+}
+
+document.getElementById('submitBtn').onclick = async () => {
+  const name = document.getElementById('readerSelect').value;
+  const bookTitle = document.getElementById('bookSelect').value;
+  const currentPage = parseInt(document.getElementById('currentPage').value) || 0;
+  const totalPages = parseInt(document.getElementById('totalPages').value) || 0;
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('submitBtn');
+
+  if (!name || !bookTitle || !totalPages) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+
+  const status = currentPage >= totalPages ? 'completed' : 'reading';
+
+  // Update local state
+  const existing = readers.findIndex(r => r.name === name && r.book === bookTitle);
+  if (existing >= 0) {
+    readers[existing].currentPage = currentPage;
+    readers[existing].totalPages = totalPages;
+    readers[existing].status = status;
+  } else {
+    readers.push({
+      name, book: bookTitle,
+      startDate: new Date().toISOString().slice(0,10),
+      currentPage, totalPages, status
+    });
+  }
+
+  // Try to write to Google Sheet
+  if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateProgress',
+          name, book: bookTitle, currentPage, totalPages, status
+        })
+      });
+      if (!resp.ok) throw new Error('Failed');
+    } catch(e) {
+      console.warn('Sheet write failed:', e);
+    }
+  }
+
+  render();
+  msg.className = 'form-msg success';
+  msg.textContent = status === 'completed'
+    ? `🎉 Congratulations! You finished "${bookTitle}"! Reward earned!`
+    : `✅ Progress updated — page ${currentPage} of ${totalPages}`;
+  msg.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Update Progress';
+  setTimeout(() => { msg.style.display = 'none'; }, 4000);
+};
+
+// ─── LEADERBOARD ───
+function renderLeaderboard() {
+  const readerMap = {};
+  readers.forEach(r => {
+    if (!readerMap[r.name]) readerMap[r.name] = { completed: 0, earned: 0, reading: 0 };
+    if (r.status === 'completed') {
+      readerMap[r.name].completed++;
+      const book = books.find(b => b.title === r.book);
+      readerMap[r.name].earned += book ? book.reward : 0;
+    } else {
+      readerMap[r.name].reading++;
+    }
+  });
+
+  const sorted = Object.entries(readerMap)
+    .map(([name, d]) => ({ name, ...d }))
+    .sort((a, b) => b.earned - a.earned || b.completed - a.completed);
+
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = sorted.map((r, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `
+      <div class="lb-row">
+        <div class="lb-rank ${rankClass}">${i + 1}</div>
+        <div class="lb-avatar">${r.name[0]}</div>
+        <div class="lb-info">
+          <div class="lb-name">${r.name}</div>
+          <div class="lb-detail">${r.completed} completed · ${r.reading} reading</div>
+        </div>
+        <div class="lb-earned">$${r.earned}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── TABS ───
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  };
+});
+
+// ─── INIT ───
+loadData();
+</script>
+</body>
+</html>
