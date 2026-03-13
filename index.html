@@ -63,6 +63,7 @@
   .cat-btn.active[data-cat="thinking"] { background:#60a5fa; border-color:#60a5fa; }
   .cat-btn.active[data-cat="fiction"] { background:#f97316; border-color:#f97316; }
   .cat-btn.active[data-cat="scripture"] { background:#f59e0b; border-color:#f59e0b; }
+  .cat-btn.active[data-cat="recommended"] { background:linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; }
 
   /* Book Grid */
   .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
@@ -185,6 +186,7 @@
     <div class="stat-pill"><span class="stat-icon">👥</span><div><div class="stat-val purple" id="statReaders">—</div><div class="stat-label">Readers</div></div></div>
     <div class="stat-pill"><span class="stat-icon">✅</span><div><div class="stat-val green" id="statCompleted">—</div><div class="stat-label">Completed</div></div></div>
     <div class="stat-pill"><span class="stat-icon">💰</span><div><div class="stat-val gold" id="statEarned">$0</div><div class="stat-label">Earned</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">💎</span><div><div class="stat-val gold" id="statPotential">$0</div><div class="stat-label">Total Potential</div></div></div>
   </div>
 </div>
 
@@ -203,6 +205,7 @@
       <button class="cat-btn" data-cat="thinking" onclick="filterCat('thinking')">🧠 Thinking</button>
       <button class="cat-btn" data-cat="fiction" onclick="filterCat('fiction')">🐉 Fiction</button>
       <button class="cat-btn" data-cat="scripture" onclick="filterCat('scripture')">📜 Memorize Scripture</button>
+      <button class="cat-btn" data-cat="recommended" onclick="filterCat('recommended')">⭐ Highly Recommended</button>
     </div>
     <div class="loading" id="booksLoading"><div class="spinner"></div>Loading books…</div>
     <div class="book-grid" id="bookGrid"></div>
@@ -297,7 +300,7 @@ const PLACEHOLDER_BOOKS = [
   { title:"Every Good Endeavor", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/1594632820-L.jpg", reward:12, summary:"In a work world that is increasingly competitive and insecure, Keller shows that the Bible's wisdom is more relevant than ever. He explains why work is both painful and fruitful, and how Christians can find deep satisfaction and meaning in any vocation by connecting their daily labor to God's work in the world.", rating:4.16, genre:"Faith & Work", totalPages:272, category:"Religious" },
   { title:"The Ruthless Elimination of Hurry", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0525653090-L.jpg", reward:10, summary:"Pastor John Mark Comer discovered he was dangerously close to burnout. Drawing from the teachings of Jesus, he lays out a practical roadmap for slowing down and learning to live an unhurried life of emotional health and spiritual vitality in the chaos of the modern world.", rating:4.24, genre:"Spiritual Life", totalPages:304, category:"Religious" },
   { title:"The Great Divorce", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652950-L.jpg", reward:8, summary:"C.S. Lewis imagines a bus ride from Hell to Heaven in this theological dream vision. The passengers discover they can stay in Heaven if they let go of a single damning fault. A brilliant exploration of how we choose between self and God, pride and joy, holding on and letting go.", rating:4.15, genre:"Theology", totalPages:160, category:"Religious" },
-  { title:"Another Gospel? (Student Edition)", author:"Alisa Childers", cover:"https://covers.openlibrary.org/b/isbn/9798400511011-L.jpg", reward:35, summary:"A lifelong Christian seeks truth in response to progressive Christianity. Alisa Childers describes her journey wrestling with questions that struck at the core of her faith after encountering a progressive pastor. With compelling stories and discussion questions designed for young adults, she examines what the Bible really says and helps readers find clarity in a culture of endless questions.", rating:4.55, genre:"Apologetics", totalPages:288, category:"Religious" },
+  { title:"Another Gospel? (Student Edition)", author:"Alisa Childers", cover:"", reward:35, summary:"A lifelong Christian seeks truth in response to progressive Christianity. Alisa Childers describes her journey wrestling with questions that struck at the core of her faith after encountering a progressive pastor. With compelling stories and discussion questions designed for young adults, she examines what the Bible really says and helps readers find clarity in a culture of endless questions.", rating:4.55, genre:"Apologetics", totalPages:288, category:"Religious" },
   { title:"Loveology", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0310337267-L.jpg", reward:10, summary:"A fresh, biblical look at love, marriage, sex, and the never-ending story of male and female. Comer traces the Bible's narrative from Genesis to Revelation, presenting a theology of sexuality that is both intellectually honest and deeply practical for singles, engaged couples, and the newly married.", rating:3.93, genre:"Relationships", totalPages:256, category:"Religious" },
   // Thinking
   { title:"The Anxious Generation", author:"Jonathan Haidt", cover:"https://covers.openlibrary.org/b/isbn/0593655036-L.jpg", reward:15, summary:"Social psychologist Jonathan Haidt lays out the facts about the epidemic of teen mental illness hitting countries worldwide. He investigates how smartphones and social media have rewired childhood, and proposes practical solutions for parents, teachers, and policymakers to reverse the damage.", rating:4.06, genre:"Psychology", totalPages:385, category:"Thinking" },
@@ -455,7 +458,8 @@ async function loadData() {
       rating: parseFloat(b.goodreads_rating || b.rating) || 0,
       genre: b.genre || '',
       totalPages: parseInt(b.total_pages) || 0,
-      category: b.category || ''
+      category: b.category || '',
+      recommended: (b.recommended || '').toLowerCase() === 'yes'
     }));
 
     readers = readersData.map(r => ({
@@ -494,10 +498,13 @@ function renderStats() {
     return sum + (book ? book.reward : 0);
   }, 0);
 
+  const totalPotential = books.reduce((sum, b) => sum + b.reward, 0);
+
   document.getElementById('statBooks').textContent = books.length;
   document.getElementById('statReaders').textContent = uniqueReaders.length;
   document.getElementById('statCompleted').textContent = completed.length;
   document.getElementById('statEarned').textContent = '$' + earned;
+  document.getElementById('statPotential').textContent = '$' + totalPotential;
 }
 
 function getBookReaders(title) {
@@ -533,7 +540,7 @@ function renderBooks() {
     const catClass = b.category ? 'cat-' + b.category.toLowerCase() : '';
     const recClass = b.recommended ? 'recommended' : '';
     return `
-      <div class="book-card ${catClass} ${recClass}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" onclick="openModal(${i})">
+      <div class="book-card ${catClass} ${recClass}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" data-recommended="${b.recommended ? 'yes' : ''}" onclick="openModal(${i})">
         <div class="book-card-inner">
           <div class="book-cover">${coverHTML(b)}</div>
           <div class="book-info">
@@ -574,7 +581,8 @@ function filterCat(cat) {
     const matching = [];
     const dimmed = [];
     cards.forEach(card => {
-      if (card.dataset.category === cat) {
+      const matches = cat === 'recommended' ? card.dataset.recommended === 'yes' : card.dataset.category === cat;
+      if (matches) {
         card.classList.remove('dimmed');
         matching.push(card);
       } else {
