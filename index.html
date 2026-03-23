@@ -537,7 +537,6 @@ function renderStats() {
   const remaining = Math.max(REWARD_POT - earned, 0);
   const pct = Math.round((remaining / REWARD_POT) * 100);
 
-  document.getElementById('statBooks').textContent = books.length;
   document.getElementById('statReaders').textContent = uniqueReaders.length;
   document.getElementById('statCompleted').textContent = completed.length;
   document.getElementById('statEarned').textContent = '$' + earned;
