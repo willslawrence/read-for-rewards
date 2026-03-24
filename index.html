@@ -216,7 +216,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.3</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.4</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -696,13 +696,15 @@ function openModal(idx) {
   } else {
     list.innerHTML = br.map(r => {
       const pct = r.totalPages ? Math.round((r.currentPage / r.totalPages) * 100) : 0;
-      const isComplete = r.status === 'completed' || pct >= 100;
+      const isComplete = r.status === 'completed';
+      const isPending = r.status === 'pending_review';
+      const statusText = isComplete ? '✅ Completed' : isPending ? '⏳ Awaiting approval' : `📖 ${isScripture ? 'Verse' : 'Page'} ${r.currentPage} of ${r.totalPages}`;
       return `
         <div class="reader-row">
           <div class="reader-avatar">${r.name[0]}</div>
           <div class="reader-info">
             <div class="reader-name">${r.name}</div>
-            <div class="reader-status">${isComplete ? '✅ Completed' : `📖 ${isScripture ? 'Verse' : 'Page'} ${r.currentPage} of ${r.totalPages}`} · Started ${r.startDate}</div>
+            <div class="reader-status">${statusText} · Started ${r.startDate}</div>
           </div>
           <div class="reader-progress">
             <div class="progress-bar"><div class="progress-fill ${isComplete ? 'completed' : 'reading'}" style="width:${Math.min(pct,100)}%"></div></div>
@@ -721,12 +723,39 @@ document.getElementById('modalOverlay').onclick = (e) => { if (e.target === e.cu
 // ─── ACTIVITIES ───
 function renderActivities() {
   const container = document.getElementById('activityList');
+  const pendingReview = readers.filter(r => r.status === 'pending_review');
   const activeReaders = readers.filter(r => r.status === 'reading');
-  if (activeReaders.length === 0) {
+
+  let html = '';
+
+  // Pending Review section — always visible so Will can approve
+  if (pendingReview.length > 0) {
+    html += '<h3>⏳ Pending Will\'s Approval</h3>' + pendingReview.map((r, i) => {
+      const book = books.find(b => b.title === r.book);
+      const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+      return `
+        <div class="activity-card" style="border-left:3px solid var(--gold);background:rgba(184,134,11,0.05);">
+          <div class="activity-avatar" style="background:var(--gold);color:white;">${r.name[0]}</div>
+          <div class="activity-info">
+            <div class="activity-name">${r.name}</div>
+            <div class="activity-book">${r.book} · ✅ ${isScrip ? 'All verses done' : 'All pages read'}</div>
+          </div>
+          <div class="approved-check" style="display:flex;" onclick="event.stopPropagation()">
+            <input type="checkbox" id="pending-${i}" onchange="handlePendingApproval(${i}, this.checked)">
+            <label for="pending-${i}">Approve</label>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Active readings
+  if (activeReaders.length === 0 && pendingReview.length === 0) {
     container.innerHTML = '<div style="color:var(--muted);font-size:13px;">No active readings yet. Start one below!</div>';
     return;
   }
-  container.innerHTML = '<h3>📖 Active Readings</h3>' + activeReaders.map((r, i) => {
+
+  if (activeReaders.length > 0) {
+    html += '<h3>📖 Active Readings</h3>' + activeReaders.map((r, i) => {
     const book = books.find(b => b.title === r.book);
     const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
     const pct = r.totalPages ? Math.min(Math.round((r.currentPage / r.totalPages) * 100), 100) : 0;
@@ -747,7 +776,10 @@ function renderActivities() {
           <label for="approved-${i}">Will approved</label>
         </div>
       </div>`;
-  }).join('');
+    }).join('');
+  }
+
+  container.innerHTML = html;
 }
 
 function selectActivity(idx) {
@@ -779,18 +811,42 @@ function selectActivity(idx) {
   document.getElementById('currentPage').focus();
 }
 
+function handlePendingApproval(idx, checked) {
+  const pendingReview = readers.filter(r => r.status === 'pending_review');
+  const r = pendingReview[idx];
+  if (!r || !checked) return;
+
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers[readerIdx].status = 'completed';
+
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateProgress',
+          name: r.name, book: r.book,
+          currentPage: r.currentPage, totalPages: r.totalPages,
+          status: 'completed'
+        })
+      }).catch(e => console.warn('Sheet write failed:', e));
+    }
+
+    render();
+  }
+}
+
 function handleApproval(idx, checked) {
   const activeReaders = readers.filter(r => r.status === 'reading');
   const r = activeReaders[idx];
   if (!r || !checked) return;
 
-  // Mark as completed
   const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
   if (readerIdx >= 0) {
     readers[readerIdx].currentPage = readers[readerIdx].totalPages;
     readers[readerIdx].status = 'completed';
 
-    // Write to sheet
     if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
       fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -911,7 +967,7 @@ document.getElementById('submitBtn').onclick = async () => {
   btn.disabled = true;
   btn.textContent = 'Updating…';
 
-  const status = currentPage >= totalPages ? 'completed' : 'reading';
+  const status = currentPage >= totalPages ? 'pending_review' : 'reading';
 
   // Update local state
   const existing = readers.findIndex(r => r.name === name && r.book === bookTitle);
@@ -948,8 +1004,8 @@ document.getElementById('submitBtn').onclick = async () => {
   const selBook = books.find(b => b.title === bookTitle);
   const isScrip = selBook && (selBook.category||'').toLowerCase() === 'scripture';
   msg.className = 'form-msg success';
-  msg.textContent = status === 'completed'
-    ? `🎉 Congratulations! You finished "${bookTitle}"! ${isScrip ? 'Now recite to Will to claim your reward!' : 'Reward earned!'}`
+  msg.textContent = status === 'pending_review'
+    ? `🎉 You finished "${bookTitle}"! ${isScrip ? 'Now recite to Will' : 'Will needs to verify'} before the reward is counted. ⏳`
     : `✅ Progress updated — ${isScrip ? 'verse' : 'page'} ${currentPage} of ${totalPages}`;
   msg.style.display = 'block';
   btn.disabled = false;
