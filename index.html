@@ -190,6 +190,9 @@
   .approved-check label { font-size:10px; color:var(--muted); cursor:pointer; white-space:nowrap; }
   .admin-badge { display:none; font-size:9px; background:var(--green); color:#fff; padding:2px 8px; border-radius:6px; margin-left:8px; vertical-align:middle; font-weight:600; letter-spacing:0.5px; }
   .admin-mode .admin-badge { display:inline; }
+  .admin-cancel { display:none; }
+  .admin-mode .admin-cancel { display:block; }
+  .admin-cancel button { background:none; border:1px solid #dc2626; color:#dc2626; font-size:9px; padding:2px 8px; border-radius:6px; cursor:pointer; }
   .activity-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
   /* Loading */
@@ -216,7 +219,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.4</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.5</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -744,6 +747,9 @@ function renderActivities() {
             <input type="checkbox" id="pending-${i}" onchange="handlePendingApproval(${i}, this.checked)">
             <label for="pending-${i}">Approve</label>
           </div>
+          <div class="admin-cancel" onclick="event.stopPropagation()">
+            <button onclick="cancelReading('pending_review', ${i})">✕ Cancel</button>
+          </div>
         </div>`;
     }).join('');
   }
@@ -774,6 +780,9 @@ function renderActivities() {
         <div class="approved-check" onclick="event.stopPropagation()">
           <input type="checkbox" id="approved-${i}" onchange="handleApproval(${i}, this.checked)">
           <label for="approved-${i}">Will approved</label>
+        </div>
+        <div class="admin-cancel" onclick="event.stopPropagation()">
+          <button onclick="cancelReading('reading', ${i})">✕ Cancel</button>
         </div>
       </div>`;
     }).join('');
@@ -859,6 +868,32 @@ function handleApproval(idx, checked) {
           status: 'completed'
         })
       }).catch(e => console.warn('Sheet write failed:', e));
+    }
+
+    render();
+  }
+}
+
+function cancelReading(filterStatus, idx) {
+  const filtered = readers.filter(r => r.status === filterStatus);
+  const r = filtered[idx];
+  if (!r) return;
+  if (!confirm(`Cancel "${r.name}" reading "${r.book}"? This will remove it from the log.`)) return;
+
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers.splice(readerIdx, 1);
+
+    // Remove from sheet
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteProgress',
+          name: r.name, book: r.book
+        })
+      }).catch(e => console.warn('Sheet delete failed:', e));
     }
 
     render();
