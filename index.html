@@ -172,6 +172,23 @@
   .lb-detail { font-size:12px; color:var(--muted); }
   .lb-earned { font-size:16px; font-weight:700; color:var(--gold); font-family:'JetBrains Mono',monospace; }
 
+  /* Activity Cards */
+  .activity-list { margin-bottom:28px; }
+  .activity-list h3 { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .activity-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:14px; }
+  .activity-card:hover { border-color:var(--accent); background:var(--card-hover); }
+  .activity-card.active-selection { border-color:var(--accent); box-shadow:0 0 12px var(--accent-glow); }
+  .activity-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .activity-info { flex:1; min-width:0; }
+  .activity-name { font-size:13px; font-weight:600; }
+  .activity-book { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .activity-progress { width:70px; flex-shrink:0; }
+  .activity-pct { font-size:10px; color:var(--muted); text-align:right; font-family:'JetBrains Mono',monospace; }
+  .approved-check { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .approved-check input[type=checkbox] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
+  .approved-check label { font-size:10px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .activity-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+
   /* Loading */
   .loading { text-align:center; padding:60px 20px; color:var(--muted); }
   .loading .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
@@ -196,7 +213,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards</h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;">V1.2</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -244,7 +261,10 @@
   <div class="tab-panel" id="panel-progress">
     <div class="update-panel">
       <h2>📝 Update Your Reading Progress</h2>
-      <p class="desc">Select your name and the book you're reading, then update your current page.</p>
+      <p class="desc">Click on an active reading below to update it, or use the form to start something new.</p>
+      <div class="activity-list" id="activityList"></div>
+      <hr class="activity-divider">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">Start New or Manual Update</h3>
       <div class="form-group">
         <label>Your Name</label>
         <select id="readerSelect"><option value="">Select your name…</option></select>
@@ -260,11 +280,11 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Current Page</label>
+          <label id="currentPageLabel">Current Page</label>
           <input type="number" id="currentPage" placeholder="e.g. 142" min="0">
         </div>
         <div class="form-group">
-          <label>Total Pages</label>
+          <label id="totalPagesLabel">Total Pages</label>
           <input type="number" id="totalPages" placeholder="e.g. 320" min="1" disabled>
         </div>
       </div>
@@ -519,6 +539,7 @@ async function loadData() {
 function render() {
   renderStats();
   renderBooks();
+  renderActivities();
   renderForm();
   renderLeaderboard();
   document.getElementById('booksLoading').style.display = 'none';
@@ -665,6 +686,7 @@ function openModal(idx) {
     summaryEl.textContent = b.summary;
   }
 
+  const isScripture = (b.category||'').toLowerCase() === 'scripture';
   const list = document.getElementById('modalReaderList');
   if (br.length === 0) {
     list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No one has started this book yet. Be the first!</div>';
@@ -677,7 +699,7 @@ function openModal(idx) {
           <div class="reader-avatar">${r.name[0]}</div>
           <div class="reader-info">
             <div class="reader-name">${r.name}</div>
-            <div class="reader-status">${isComplete ? '✅ Completed' : `📖 Page ${r.currentPage} of ${r.totalPages}`} · Started ${r.startDate}</div>
+            <div class="reader-status">${isComplete ? '✅ Completed' : `📖 ${isScripture ? 'Verse' : 'Page'} ${r.currentPage} of ${r.totalPages}`} · Started ${r.startDate}</div>
           </div>
           <div class="reader-progress">
             <div class="progress-bar"><div class="progress-fill ${isComplete ? 'completed' : 'reading'}" style="width:${Math.min(pct,100)}%"></div></div>
@@ -692,6 +714,97 @@ function openModal(idx) {
 
 document.getElementById('modalClose').onclick = () => document.getElementById('modalOverlay').classList.remove('open');
 document.getElementById('modalOverlay').onclick = (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); };
+
+// ─── ACTIVITIES ───
+function renderActivities() {
+  const container = document.getElementById('activityList');
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  if (activeReaders.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;">No active readings yet. Start one below!</div>';
+    return;
+  }
+  container.innerHTML = '<h3>📖 Active Readings</h3>' + activeReaders.map((r, i) => {
+    const book = books.find(b => b.title === r.book);
+    const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+    const pct = r.totalPages ? Math.min(Math.round((r.currentPage / r.totalPages) * 100), 100) : 0;
+    const unit = isScrip ? 'Verse' : 'Page';
+    return `
+      <div class="activity-card" onclick="selectActivity(${i})" data-activity-idx="${i}">
+        <div class="activity-avatar">${r.name[0]}</div>
+        <div class="activity-info">
+          <div class="activity-name">${r.name}</div>
+          <div class="activity-book">${r.book} · ${unit} ${r.currentPage}/${r.totalPages}</div>
+        </div>
+        <div class="activity-progress">
+          <div class="progress-bar"><div class="progress-fill reading" style="width:${pct}%"></div></div>
+          <div class="activity-pct">${pct}%</div>
+        </div>
+        <div class="approved-check" onclick="event.stopPropagation()">
+          <input type="checkbox" id="approved-${i}" onchange="handleApproval(${i}, this.checked)">
+          <label for="approved-${i}">Will approved</label>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectActivity(idx) {
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  const r = activeReaders[idx];
+  if (!r) return;
+
+  // Highlight selected card
+  document.querySelectorAll('.activity-card').forEach(c => c.classList.remove('active-selection'));
+  const card = document.querySelector(`[data-activity-idx="${idx}"]`);
+  if (card) card.classList.add('active-selection');
+
+  // Fill the form
+  const readerSelect = document.getElementById('readerSelect');
+  const bookSelect = document.getElementById('bookSelect');
+  const newReaderInput = document.getElementById('newReaderName');
+
+  // Make sure we're in "existing reader" mode
+  if (newReaderInput.style.display !== 'none') toggleNewReader();
+
+  // Set reader
+  readerSelect.value = r.name;
+  // Set book
+  bookSelect.value = r.book;
+
+  updateFormState();
+
+  // Scroll form into view
+  document.getElementById('currentPage').focus();
+}
+
+function handleApproval(idx, checked) {
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  const r = activeReaders[idx];
+  if (!r || !checked) return;
+
+  // Mark as completed
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers[readerIdx].currentPage = readers[readerIdx].totalPages;
+    readers[readerIdx].status = 'completed';
+
+    // Write to sheet
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateProgress',
+          name: r.name, book: r.book,
+          currentPage: readers[readerIdx].totalPages,
+          totalPages: readers[readerIdx].totalPages,
+          status: 'completed'
+        })
+      }).catch(e => console.warn('Sheet write failed:', e));
+    }
+
+    render();
+  }
+}
 
 // ─── FORM ───
 function renderForm() {
@@ -742,6 +855,10 @@ function updateFormState() {
   if (reader && bookTitle) {
     const existing = readers.find(r => r.name === reader && r.book === bookTitle);
     const book = books.find(b => b.title === bookTitle);
+    const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+    document.getElementById('currentPageLabel').textContent = isScrip ? 'Current Verse' : 'Current Page';
+    document.getElementById('totalPagesLabel').textContent = isScrip ? 'Total Verses' : 'Total Pages';
+    document.getElementById('currentPage').placeholder = isScrip ? 'e.g. 5' : 'e.g. 142';
     const tp = document.getElementById('totalPages');
 
     if (existing) {
@@ -825,10 +942,12 @@ document.getElementById('submitBtn').onclick = async () => {
   }
 
   render();
+  const selBook = books.find(b => b.title === bookTitle);
+  const isScrip = selBook && (selBook.category||'').toLowerCase() === 'scripture';
   msg.className = 'form-msg success';
   msg.textContent = status === 'completed'
-    ? `🎉 Congratulations! You finished "${bookTitle}"! Reward earned!`
-    : `✅ Progress updated — page ${currentPage} of ${totalPages}`;
+    ? `🎉 Congratulations! You finished "${bookTitle}"! ${isScrip ? 'Now recite to Will to claim your reward!' : 'Reward earned!'}`
+    : `✅ Progress updated — ${isScrip ? 'verse' : 'page'} ${currentPage} of ${totalPages}`;
   msg.style.display = 'block';
   btn.disabled = false;
   btn.textContent = 'Update Progress';
