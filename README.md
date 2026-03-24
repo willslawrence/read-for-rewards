@@ -18,4 +18,4 @@ Gamified reading tracker for Will's homeschool boys. Kids earn cash rewards for 
 - 🏆 Leaderboard ranked by rewards earned
 - ⭐ Category filters (Religious, Thinking, Fiction, Scripture, Recommended)
 
-> 📋 Operational reference: see `memory/read-for-rewards-reference.md`
+> 📋 Operational reference: see `memory/read-for-rewards.md`

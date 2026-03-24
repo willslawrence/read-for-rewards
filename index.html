@@ -588,7 +588,7 @@ function renderBooks() {
           <div class="book-info">
             <div class="book-title">${b.title}</div>
             <div class="book-author">by ${b.author}</div>
-            <div style="margin-bottom:6px;">${renderStars(b.rating)}</div>
+            <div style="margin-bottom:6px;">${(b.category||'').toLowerCase()==='scripture' ? '<span style="color:var(--gold);font-size:11px;font-weight:600;">📖 Memorize & recite to Will</span>' : renderStars(b.rating)}</div>
             <div class="book-meta">
               <div class="reward-badge">💰 $${b.reward}</div>
               ${active ? `<div class="readers-badge"><span class="dot dot-active"></span>${active} reading</div>` : ''}
@@ -646,7 +646,7 @@ function openModal(idx) {
   document.getElementById('modalCover').innerHTML = coverHTML(b);
   document.getElementById('modalTitle').textContent = b.title;
   document.getElementById('modalAuthor').textContent = 'by ' + b.author;
-  document.getElementById('modalStars').innerHTML = renderStars(b.rating);
+  document.getElementById('modalStars').innerHTML = (b.category||'').toLowerCase()==='scripture' ? '<span style="color:var(--gold);font-size:13px;font-weight:600;">📖 Memorize & recite to Will to claim reward</span>' : renderStars(b.rating);
   document.getElementById('modalReward').innerHTML = `<div class="reward-badge" style="font-size:14px;">💰 $${b.reward} reward</div>`;
 
   const active = br.filter(r => r.status === 'reading').length;
