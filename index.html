@@ -219,7 +219,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.5</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.6</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -1069,17 +1069,46 @@ function renderLeaderboard() {
   const list = document.getElementById('leaderboardList');
   list.innerHTML = sorted.map((r, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const isExpanded = leaderboardExpanded === r.name;
+    const readerBooks = readers.filter(rd => rd.name === r.name);
+    const completedBooks = readerBooks.filter(rd => rd.status === 'completed');
+    const pendingBooks = readerBooks.filter(rd => rd.status === 'pending_review');
+    const readingBooks = readerBooks.filter(rd => rd.status === 'reading');
     return `
-      <div class="lb-row">
-        <div class="lb-rank ${rankClass}">${i + 1}</div>
-        <div class="lb-avatar">${r.name[0]}</div>
-        <div class="lb-info">
-          <div class="lb-name">${r.name}</div>
-          <div class="lb-detail">${r.completed} completed · ${r.reading} reading</div>
+      <div class="lb-row-wrapper">
+        <div class="lb-row" onclick="toggleLeaderboardCard('${r.name}')" style="cursor:pointer;">
+          <div class="lb-rank ${rankClass}">${i + 1}</div>
+          <div class="lb-avatar">${r.name[0]}</div>
+          <div class="lb-info">
+            <div class="lb-name">${r.name}</div>
+            <div class="lb-detail">${r.completed} completed · ${r.reading} reading</div>
+          </div>
+          <div class="lb-earned">$${r.earned}</div>
         </div>
-        <div class="lb-earned">$${r.earned}</div>
+        ${isExpanded ? `
+        <div style="padding:8px 12px 12px 52px;font-size:12px;border-top:1px solid var(--border);">
+          ${completedBooks.length ? `<div style="margin-bottom:6px;"><strong style="color:var(--green);">✅ Completed</strong></div>` +
+            completedBooks.map(b => {
+              const book = books.find(bk => bk.title === b.book);
+              return `<div style="padding:2px 0;color:var(--text);">📗 ${b.book}${book ? ' — $'+book.reward : ''}</div>`;
+            }).join('') : ''}
+          ${pendingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--gold);">⏳ Pending</strong></div>` +
+            pendingBooks.map(b => `<div style="padding:2px 0;color:var(--muted);">📙 ${b.book}</div>`).join('') : ''}
+          ${readingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--blue);">📖 Reading</strong></div>` +
+            readingBooks.map(b => {
+              const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
+              return `<div style="padding:2px 0;color:var(--muted);">📘 ${b.book} — ${pct}%</div>`;
+            }).join('') : ''}
+        </div>
+        ` : ''}
       </div>`;
   }).join('');
+}
+
+let leaderboardExpanded = null;
+function toggleLeaderboardCard(name) {
+  leaderboardExpanded = leaderboardExpanded === name ? null : name;
+  renderLeaderboard();
 }
 
 // ─── TABS ───
