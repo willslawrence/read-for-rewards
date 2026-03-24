@@ -219,7 +219,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.6</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.7</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -1094,7 +1094,7 @@ function renderLeaderboard() {
             }).join('') : ''}
           ${pendingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--gold);">⏳ Pending</strong></div>` +
             pendingBooks.map(b => `<div style="padding:2px 0;color:var(--muted);">📙 ${b.book}</div>`).join('') : ''}
-          ${readingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--blue);">📖 Reading</strong></div>` +
+          ${readingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--blue);">📖 Reading / Memorizing</strong></div>` +
             readingBooks.map(b => {
               const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
               return `<div style="padding:2px 0;color:var(--muted);">📘 ${b.book} — ${pct}%</div>`;
