@@ -184,9 +184,12 @@
   .activity-book { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .activity-progress { width:70px; flex-shrink:0; }
   .activity-pct { font-size:10px; color:var(--muted); text-align:right; font-family:'JetBrains Mono',monospace; }
-  .approved-check { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .approved-check { display:none; align-items:center; gap:6px; flex-shrink:0; }
+  .admin-mode .approved-check { display:flex; }
   .approved-check input[type=checkbox] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
   .approved-check label { font-size:10px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .admin-badge { display:none; font-size:9px; background:var(--green); color:#fff; padding:2px 8px; border-radius:6px; margin-left:8px; vertical-align:middle; font-weight:600; letter-spacing:0.5px; }
+  .admin-mode .admin-badge { display:inline; }
   .activity-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
   /* Loading */
@@ -213,7 +216,7 @@
 
 <div class="header">
   <div class="header-top">
-    <h1><span class="emoji">📚</span> Read for Rewards <span style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;">V1.2</span></h1>
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.2</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
   </div>
   <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
   <div class="reward-pot-banner" id="rewardPotBanner">
@@ -997,6 +1000,22 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
   };
 });
+
+// ─── ADMIN MODE ───
+let adminTapCount = 0;
+let adminTapTimer = null;
+let adminMode = false;
+
+function handleAdminTap() {
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 1500);
+  if (adminTapCount >= 3) {
+    adminTapCount = 0;
+    adminMode = !adminMode;
+    document.body.classList.toggle('admin-mode', adminMode);
+  }
+}
 
 // ─── INIT ───
 loadData();
