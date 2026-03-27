@@ -80,6 +80,7 @@
   .cat-btn.active[data-cat="fiction"] { background:#f97316; border-color:#f97316; }
   .cat-btn.active[data-cat="scripture"] { background:#f59e0b; border-color:#f59e0b; }
   .cat-btn.active[data-cat="recommended"] { background:linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; }
+  .cat-btn.active[data-cat="new"] { background:linear-gradient(135deg,#10b981,#059669); border-color:#10b981; }
 
   /* Book Grid */
   .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
@@ -94,6 +95,9 @@
   .book-card.recommended::after { content:'⭐ HIGHLY RECOMMENDED'; position:absolute; top:10px; right:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#1a1a2e; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; }
   .book-card.pending-review { border:2px dashed #8892a8; opacity:0.85; }
   .book-card.pending-review::after { content:'⏳ PENDING REVIEW'; position:absolute; top:10px; right:10px; background:linear-gradient(135deg,#6b7280,#4b5563); color:#fff; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; }
+  .book-card.is-new .new-badge { display:inline-block; }
+  .new-badge { display:none; position:absolute; top:10px; left:10px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; animation:newPulse 2s ease-in-out infinite; z-index:2; }
+  @keyframes newPulse { 0%,100%{ box-shadow:0 0 6px rgba(16,185,129,0.3); } 50%{ box-shadow:0 0 14px rgba(16,185,129,0.6); } }
 
   .book-card-inner { display:flex; gap:16px; }
   .book-cover { width:90px; height:130px; border-radius:8px; overflow:hidden; flex-shrink:0; background:var(--surface); display:flex; align-items:center; justify-content:center; }
@@ -259,6 +263,7 @@
       <button class="cat-btn" data-cat="thinking" onclick="filterCat('thinking')">🧠 Thinking</button>
       <button class="cat-btn" data-cat="fiction" onclick="filterCat('fiction')">🐉 Fiction</button>
       <button class="cat-btn" data-cat="scripture" onclick="filterCat('scripture')">📜 Memorize Scripture</button>
+      <button class="cat-btn" data-cat="new" onclick="filterCat('new')">✨ New</button>
       <button class="cat-btn" data-cat="recommended" onclick="filterCat('recommended')">⭐ Highly Recommended</button>
     </div>
     <div class="loading" id="booksLoading"><div class="spinner"></div>Loading books…</div>
@@ -522,7 +527,8 @@ async function loadData() {
       totalPages: parseInt(b.total_pages) || 0,
       category: b.category || '',
       recommended: (b.recommended || '').toLowerCase() === 'yes',
-      pending: (b.recommended || '').toLowerCase() === 'pending'
+      pending: (b.recommended || '').toLowerCase() === 'pending',
+      isNew: (b.new || '').toLowerCase() === 'yes'
     }));
 
     readers = readersData.map(r => ({
@@ -612,7 +618,8 @@ function renderBooks() {
     const catClass = b.category ? 'cat-' + b.category.toLowerCase() : '';
     const recClass = b.recommended ? 'recommended' : b.pending ? 'pending-review' : '';
     return `
-      <div class="book-card ${catClass} ${recClass}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" data-recommended="${b.recommended ? 'yes' : ''}" onclick="openModal(${i})">
+      <div class="book-card ${catClass} ${recClass} ${b.isNew ? 'is-new' : ''}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" data-recommended="${b.recommended ? 'yes' : ''}" data-new="${b.isNew ? 'yes' : ''}" onclick="openModal(${i})">
+        <span class="new-badge">✨ NEW</span>
         <div class="book-card-inner">
           <div class="book-cover">${coverHTML(b)}</div>
           <div class="book-info">
@@ -653,7 +660,7 @@ function filterCat(cat) {
     const matching = [];
     const dimmed = [];
     cards.forEach(card => {
-      const matches = cat === 'recommended' ? card.dataset.recommended === 'yes' : card.dataset.category === cat;
+      const matches = cat === 'recommended' ? card.dataset.recommended === 'yes' : cat === 'new' ? card.dataset.new === 'yes' : card.dataset.category === cat;
       if (matches) {
         card.classList.remove('dimmed');
         matching.push(card);
