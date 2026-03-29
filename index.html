@@ -753,7 +753,7 @@ function renderActivities() {
             <div class="activity-name">${r.name}</div>
             <div class="activity-book">${r.book} · ✅ ${isScrip ? 'All verses done' : 'All pages read'}</div>
           </div>
-          <div class="approved-check" style="display:flex;" onclick="event.stopPropagation()">
+          <div class="approved-check" onclick="event.stopPropagation()">
             <input type="checkbox" id="pending-${i}" onchange="handlePendingApproval(${i}, this.checked)">
             <label for="pending-${i}">Approve</label>
           </div>
