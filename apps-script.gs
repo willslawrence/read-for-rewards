@@ -1,6 +1,6 @@
 // Apps Script — bound to the "Read for Rewards" Google Sheet
 // Deploy as Web App: Execute as "Me", Access "Anyone"
-// This handles progress updates from the dashboard
+// Version 3 — approval flow + email notifications
 
 function doPost(e) {
   try {
@@ -13,98 +13,104 @@ function doPost(e) {
       var book = data.book;
       var currentPage = parseInt(data.currentPage);
       var totalPages = parseInt(data.totalPages);
-      // When finished → pending_review (needs Will's approval)
-      // Use explicit status from client if provided, otherwise determine from pages
       var status = data.status || (currentPage >= totalPages ? "pending_review" : "reading");
       
-      // Find existing row for this reader + book
       var dataRange = readersSheet.getDataRange();
       var values = dataRange.getValues();
       var found = false;
       
       for (var i = 1; i < values.length; i++) {
         if (values[i][0] === name && values[i][1] === book) {
-          // Update existing row
-          readersSheet.getRange(i + 1, 4).setValue(currentPage);  // Current Page
-          readersSheet.getRange(i + 1, 5).setValue(totalPages);   // Total Pages
-          readersSheet.getRange(i + 1, 6).setValue(status);       // Status
+          readersSheet.getRange(i + 1, 4).setValue(currentPage);
+          readersSheet.getRange(i + 1, 5).setValue(totalPages);
+          readersSheet.getRange(i + 1, 6).setValue(status);
           found = true;
           break;
         }
       }
       
       if (!found) {
-        // Add new row
         var today = Utilities.formatDate(new Date(), "Asia/Riyadh", "yyyy-MM-dd");
         readersSheet.appendRow([name, book, today, currentPage, totalPages, status]);
       }
       
+      // Notify Will when someone finishes a book
+      if (status === "pending_review") {
+        notifyWill(name, book);
+      }
+      
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
-        message: status === "pending_review" ? "Completed! Awaiting Will's approval." : "Progress updated"
+        message: status === "pending_review" ? "Completed! Awaiting approval." : "Progress updated"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (data.action === "approveReading") {
       var name = data.name;
       var book = data.book;
-      
       var dataRange = readersSheet.getDataRange();
       var values = dataRange.getValues();
-      
       for (var i = 1; i < values.length; i++) {
         if (values[i][0] === name && values[i][1] === book) {
           readersSheet.getRange(i + 1, 6).setValue("approved");
           break;
         }
       }
-      
       return ContentService.createTextOutput(JSON.stringify({
-        success: true,
-        message: "Reading approved!"
+        success: true, message: "Approved!"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (data.action === "deleteProgress") {
       var name = data.name;
       var book = data.book;
-      
       var dataRange = readersSheet.getDataRange();
       var values = dataRange.getValues();
-      
       for (var i = values.length - 1; i >= 1; i--) {
         if (values[i][0] === name && values[i][1] === book) {
           readersSheet.deleteRow(i + 1);
           break;
         }
       }
-      
       return ContentService.createTextOutput(JSON.stringify({
-        success: true,
-        message: "Reading deleted"
+        success: true, message: "Deleted"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (data.action === "addReader") {
       var today = Utilities.formatDate(new Date(), "Asia/Riyadh", "yyyy-MM-dd");
       readersSheet.appendRow([data.name, data.book, today, 0, data.totalPages, "reading"]);
-      
       return ContentService.createTextOutput(JSON.stringify({
-        success: true,
-        message: "Reader added"
+        success: true, message: "Added"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      message: "Unknown action"
+      success: false, message: "Unknown action"
     })).setMimeType(ContentService.MimeType.JSON);
-    
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      message: err.toString()
+      success: false, message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function notifyWill(readerName, bookTitle) {
+  try {
+    var subject = "📚 Read for Rewards: " + readerName + " finished \"" + bookTitle + "\"!";
+    var body = "Hey Will,\n\n" +
+      readerName + " just finished reading \"" + bookTitle + "\" and is waiting for your interview/approval.\n\n" +
+      "Head to the dashboard to review:\nhttps://willslawrence.github.io/read-for-rewards/\n\n" +
+      "(Triple-click the version number to enter admin mode and approve.)";
+    
+    MailApp.sendEmail({
+      to: "wlawrence@helicopter.com.sa",
+      subject: subject,
+      body: body
+    });
+  } catch(err) {
+    // Don't let notification failure break the main flow
+    console.log("Email notification failed: " + err.toString());
   }
 }
 
