@@ -104,7 +104,7 @@ function notifyWill(readerName, bookTitle) {
       "(Triple-click the version number to enter admin mode and approve.)";
     
     MailApp.sendEmail({
-      to: "wlawrence@helicopter.com.sa",
+      to: "willurd@gmail.com",
       subject: subject,
       body: body
     });
