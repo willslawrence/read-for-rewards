@@ -531,14 +531,21 @@ async function loadData() {
       isNew: (b.new || '').toLowerCase() === 'yes'
     }));
 
-    readers = readersData.map(r => ({
-      name: r.name || r.reader_name || '',
-      book: r.book || r.book_title || '',
-      startDate: r.start_date || '',
-      currentPage: parseInt(r.current_page) || 0,
-      totalPages: parseInt(r.total_pages) || 0,
-      status: r.status || 'reading'
-    }));
+    readers = readersData.map(r => {
+      let status = (r.status || 'reading').toLowerCase().trim();
+      // Legacy: sheet says 'completed' but was never approved → treat as pending_review
+      if (status === 'completed') status = 'pending_review';
+      // Only 'approved' in sheet = truly completed
+      if (status === 'approved') status = 'completed';
+      return {
+        name: r.name || r.reader_name || '',
+        book: r.book || r.book_title || '',
+        startDate: r.start_date || '',
+        currentPage: parseInt(r.current_page) || 0,
+        totalPages: parseInt(r.total_pages) || 0,
+        status
+      };
+    });
 
     useSheet = true;
   } catch(e) {
@@ -863,10 +870,8 @@ function handlePendingApproval(idx, checked) {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          action: 'updateProgress',
-          name: r.name, book: r.book,
-          currentPage: r.currentPage, totalPages: r.totalPages,
-          status: 'completed'
+          action: 'approveReading',
+          name: r.name, book: r.book
         })
       }).catch(e => console.warn('Sheet write failed:', e));
     }
@@ -890,11 +895,8 @@ function handleApproval(idx, checked) {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          action: 'updateProgress',
-          name: r.name, book: r.book,
-          currentPage: readers[readerIdx].totalPages,
-          totalPages: readers[readerIdx].totalPages,
-          status: 'completed'
+          action: 'approveReading',
+          name: r.name, book: r.book
         })
       }).catch(e => console.warn('Sheet write failed:', e));
     }
