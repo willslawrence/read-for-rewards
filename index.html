@@ -356,7 +356,8 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGh5WSuUh1sDxd
 // CSV base for reading
 const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=`;
 
-// ─── PLACEHOLDER DATA (used when sheet not connected) ───
+// ─── NO PLACEHOLDER DATA — Google Sheet is the sole source of truth ───
+/*
 const PLACEHOLDER_BOOKS = [
   // Religious
   { title:"Every Good Endeavor", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/1594632820-L.jpg", reward:12, summary:"In a work world that is increasingly competitive and insecure, Keller shows that the Bible's wisdom is more relevant than ever. He explains why work is both painful and fruitful, and how Christians can find deep satisfaction and meaning in any vocation by connecting their daily labor to God's work in the world.", rating:4.16, genre:"Faith & Work", totalPages:272, category:"Religious" },
@@ -418,6 +419,7 @@ const PLACEHOLDER_READERS = [
   { name:"Sarah", book:"Loveology", startDate:"2026-01-15", currentPage:256, totalPages:256, status:"completed" },
   { name:"Ben", book:"Rich Dad Poor Dad", startDate:"2026-03-01", currentPage:60, totalPages:336, status:"reading" },
 ];
+*/
 
 // ─── STATE ───
 let books = [];
@@ -549,10 +551,11 @@ async function loadData() {
 
     useSheet = true;
   } catch(e) {
-    console.log('Using placeholder data:', e.message);
-    books = PLACEHOLDER_BOOKS;
-    readers = PLACEHOLDER_READERS;
+    console.error('Failed to load data from Google Sheet:', e.message);
+    books = [];
+    readers = [];
     useSheet = false;
+    document.getElementById('booksLoading').innerHTML = '<p style="color:#c44;text-align:center;padding:20px;">\u26a0\ufe0f Could not load data from Google Sheet. Please check your connection and reload.</p>';
   }
   render();
 }
