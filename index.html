@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read for Rewards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0F1A;
+    --card: #131825;
+    --card-hover: #1a2035;
+    --border: #1e2740;
+    --text: #e8eaf0;
+    --muted: #8892a8;
+    --accent: #6366f1;
+    --accent-glow: rgba(99,102,241,0.15);
+    --green: #22c55e;
+    --gold: #f59e0b;
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --surface: #0f1320;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,sans-serif; min-height:100vh; }
+
+  /* Header */
+  .header { padding:32px 24px 0; max-width:1200px; margin:0 auto; }
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:12px; }
+  .header h1 { font-size:28px; font-weight:700; display:flex; align-items:center; gap:10px; }
+  .header h1 span.emoji { font-size:32px; }
+  .header .subtitle { color:var(--muted); font-size:14px; margin-bottom:20px; }
+  .stats-row { display:flex; gap:10px; flex-wrap:nowrap; margin-bottom:24px; }
+  .stat-pill { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+  .stat-pill .stat-icon { font-size:20px; }
+  .stat-pill .stat-val { font-size:22px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .stat-pill .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .stat-val.gold { color:var(--gold); }
+  .stat-val.green { color:var(--green); }
+  .stat-val.blue { color:var(--blue); }
+  .stat-val.purple { color:var(--purple); }
+
+  /* Reward Pot */
+  .reward-pot-banner { background:linear-gradient(135deg,#f59e0b 0%,#d97706 50%,#b45309 100%); border-radius:12px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; box-shadow:0 3px 18px rgba(245,158,11,0.2); }
+  .reward-pot-left { display:flex; align-items:center; gap:10px; }
+  .reward-pot-icon { font-size:26px; }
+  .reward-pot-title { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.8); }
+  .reward-pot-amount { font-size:24px; font-weight:800; font-family:'JetBrains Mono',monospace; color:#fff; line-height:1; }
+  .reward-pot-right { text-align:right; }
+  .reward-pot-remaining { font-size:12px; color:rgba(255,255,255,0.7); }
+  .reward-pot-bar { width:160px; height:6px; background:rgba(0,0,0,0.25); border-radius:4px; overflow:hidden; margin-top:4px; }
+  .reward-pot-fill { height:100%; background:#fff; border-radius:4px; transition:width 0.5s; }
+  @media(max-width:600px) {
+    .reward-pot-banner { flex-direction:column; text-align:center; }
+    .reward-pot-right { text-align:center; }
+    .reward-pot-bar { margin:6px auto 0; }
+  }
+
+  /* Tabs */
+  .tabs { display:flex; gap:4px; padding:0 24px; max-width:1200px; margin:0 auto 24px; border-bottom:1px solid var(--border); }
+  .tab { padding:12px 20px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* Content */
+  .content { padding:0 24px 48px; max-width:1200px; margin:0 auto; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* Category filter toggles */
+  .cat-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .cat-btn { padding:7px 16px; border-radius:20px; border:2px solid var(--border); background:var(--card); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; color:var(--muted); }
+  .cat-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .cat-btn.active { color:#fff; }
+  .cat-btn.active[data-cat="all"] { background:var(--accent); border-color:var(--accent); }
+  .cat-btn.active[data-cat="religious"] { background:#a78bfa; border-color:#a78bfa; }
+  .cat-btn.active[data-cat="thinking"] { background:#60a5fa; border-color:#60a5fa; }
+  .cat-btn.active[data-cat="fiction"] { background:#f97316; border-color:#f97316; }
+  .cat-btn.active[data-cat="scripture"] { background:#f59e0b; border-color:#f59e0b; }
+  .cat-btn.active[data-cat="recommended"] { background:linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; }
+  .cat-btn.active[data-cat="new"] { background:linear-gradient(135deg,#10b981,#059669); border-color:#10b981; }
+
+  /* Book Grid */
+  .book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .book-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden; }
+  .book-card:hover { background:var(--card-hover); border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
+  .book-card.dimmed { opacity:0.2; filter:grayscale(80%); transform:scale(0.98); }
+  .book-card.cat-religious { border-left:3px solid #a78bfa; }
+  .book-card.cat-thinking { border-left:3px solid #60a5fa; }
+  .book-card.cat-fiction { border-left:3px solid #f97316; }
+  .book-card.cat-scripture { border-left:3px solid #f59e0b; }
+  .book-card.recommended { border:2px solid var(--gold); box-shadow:0 0 20px rgba(245,158,11,0.15); }
+  .book-card.recommended::after { content:'⭐ HIGHLY RECOMMENDED'; position:absolute; top:10px; right:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#1a1a2e; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; }
+  .book-card.pending-review { border:2px dashed #8892a8; opacity:0.85; }
+  .book-card.pending-review::after { content:'⏳ PENDING REVIEW'; position:absolute; top:10px; right:10px; background:linear-gradient(135deg,#6b7280,#4b5563); color:#fff; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; }
+  .book-card.is-new .new-badge { display:inline-block; }
+  .new-badge { display:none; position:absolute; top:10px; left:10px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; animation:newPulse 2s ease-in-out infinite; z-index:2; }
+  @keyframes newPulse { 0%,100%{ box-shadow:0 0 6px rgba(16,185,129,0.3); } 50%{ box-shadow:0 0 14px rgba(16,185,129,0.6); } }
+
+  .book-card-inner { display:flex; gap:16px; }
+  .book-cover { width:90px; height:130px; border-radius:8px; overflow:hidden; flex-shrink:0; background:var(--surface); display:flex; align-items:center; justify-content:center; }
+  .book-cover img { width:100%; height:100%; object-fit:cover; }
+  .book-cover .placeholder-cover { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:36px; background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; font-weight:700; }
+  .book-info { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .book-title { font-size:16px; font-weight:700; margin-bottom:4px; line-height:1.3; }
+  .book-author { font-size:13px; color:var(--muted); margin-bottom:10px; }
+  .book-meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:auto; }
+  .reward-badge { background:linear-gradient(135deg,#f59e0b,#d97706); color:#1a1a2e; font-size:12px; font-weight:700; padding:4px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:4px; }
+  .readers-badge { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  .readers-badge .dot { width:6px; height:6px; border-radius:50%; }
+  .dot-active { background:var(--green); }
+  .dot-completed { background:var(--blue); }
+  .stars { color:var(--gold); font-size:13px; letter-spacing:1px; }
+
+  /* Expanded Card Modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; max-width:600px; width:100%; max-height:85vh; overflow-y:auto; padding:28px; position:relative; }
+  .modal-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:8px; background:var(--surface); border:1px solid var(--border); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .modal-close:hover { color:var(--text); border-color:var(--accent); }
+  .modal-header { display:flex; gap:20px; margin-bottom:20px; }
+  .modal-cover { width:120px; height:175px; border-radius:10px; overflow:hidden; flex-shrink:0; }
+  .modal-cover img { width:100%; height:100%; object-fit:cover; }
+  .modal-cover .placeholder-cover { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:48px; background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; font-weight:700; }
+  .modal-title { font-size:22px; font-weight:700; margin-bottom:4px; }
+  .modal-author { font-size:14px; color:var(--muted); margin-bottom:12px; }
+  .modal-stars { margin-bottom:12px; }
+  .modal-reward { margin-bottom:8px; }
+  .modal-summary { color:var(--muted); font-size:14px; line-height:1.7; margin-bottom:24px; border-top:1px solid var(--border); padding-top:20px; }
+  .modal-readers { border-top:1px solid var(--border); padding-top:20px; }
+  .modal-readers h3 { font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .reader-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(30,39,64,0.5); }
+  .reader-row:last-child { border-bottom:none; }
+  .reader-avatar { width:32px; height:32px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .reader-info { flex:1; }
+  .reader-name { font-size:13px; font-weight:600; }
+  .reader-status { font-size:11px; color:var(--muted); }
+  .reader-progress { width:80px; }
+  .progress-bar { height:6px; background:var(--surface); border-radius:3px; overflow:hidden; margin-bottom:2px; }
+  .progress-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+  .progress-fill.reading { background:linear-gradient(90deg,var(--accent),var(--purple)); }
+  .progress-fill.completed { background:var(--green); }
+  .progress-pct { font-size:10px; color:var(--muted); text-align:right; font-family:'JetBrains Mono',monospace; }
+
+  /* Update Progress Tab */
+  .update-panel { max-width:500px; }
+  .update-panel h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .update-panel .desc { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  .form-group { margin-bottom:20px; }
+  .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .form-group select, .form-group input { width:100%; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+  .form-group select:focus, .form-group input:focus { border-color:var(--accent); }
+  .form-group select { cursor:pointer; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+  .form-row { display:flex; gap:12px; }
+  .form-row .form-group { flex:1; }
+  .btn-submit { background:linear-gradient(135deg,var(--accent),var(--purple)); color:white; border:none; padding:14px 28px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif; width:100%; }
+  .btn-submit:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(99,102,241,0.3); }
+  .btn-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+  .form-msg { margin-top:12px; padding:12px 16px; border-radius:10px; font-size:13px; display:none; }
+  .form-msg.success { display:block; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); color:var(--green); }
+  .form-msg.error { display:block; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; }
+
+  /* Leaderboard */
+  .leaderboard { max-width:500px; }
+  .leaderboard h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .leaderboard .desc { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  .lb-row { display:flex; align-items:center; gap:16px; padding:14px 16px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; transition:all 0.2s; }
+  .lb-row:hover { border-color:var(--accent); }
+  .lb-rank { font-size:20px; font-weight:700; font-family:'JetBrains Mono',monospace; width:36px; text-align:center; }
+  .lb-rank.gold { color:var(--gold); }
+  .lb-rank.silver { color:#94a3b8; }
+  .lb-rank.bronze { color:#d97706; }
+  .lb-avatar { width:40px; height:40px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .lb-info { flex:1; }
+  .lb-name { font-size:14px; font-weight:600; }
+  .lb-detail { font-size:12px; color:var(--muted); }
+  .lb-earned { font-size:16px; font-weight:700; color:var(--gold); font-family:'JetBrains Mono',monospace; }
+
+  /* Activity Cards */
+  .activity-list { margin-bottom:28px; }
+  .activity-list h3 { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .activity-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:14px; }
+  .activity-card:hover { border-color:var(--accent); background:var(--card-hover); }
+  .activity-card.active-selection { border-color:var(--accent); box-shadow:0 0 12px var(--accent-glow); }
+  .activity-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent-glow); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--accent); flex-shrink:0; }
+  .activity-info { flex:1; min-width:0; }
+  .activity-name { font-size:13px; font-weight:600; }
+  .activity-book { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .activity-progress { width:70px; flex-shrink:0; }
+  .activity-pct { font-size:10px; color:var(--muted); text-align:right; font-family:'JetBrains Mono',monospace; }
+  .approved-check { display:none; align-items:center; gap:6px; flex-shrink:0; }
+  .admin-mode .approved-check { display:flex; }
+  .approved-check input[type=checkbox] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
+  .approved-check label { font-size:10px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .admin-badge { display:none; font-size:9px; background:var(--green); color:#fff; padding:2px 8px; border-radius:6px; margin-left:8px; vertical-align:middle; font-weight:600; letter-spacing:0.5px; }
+  .admin-mode .admin-badge { display:inline; }
+  .admin-cancel { display:none; }
+  .admin-mode .admin-cancel { display:block; }
+  .admin-cancel button { background:none; border:1px solid #dc2626; color:#dc2626; font-size:9px; padding:2px 8px; border-radius:6px; cursor:pointer; }
+  .activity-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+
+  /* Loading */
+  .loading { text-align:center; padding:60px 20px; color:var(--muted); }
+  .loading .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Responsive */
+  @media(max-width:600px) {
+    .header h1 { font-size:22px; }
+    .stats-row { gap:6px; }
+    .stat-pill { padding:8px 10px; gap:6px; }
+    .stat-pill .stat-icon { font-size:16px; }
+    .stat-pill .stat-val { font-size:16px; }
+    .stat-pill .stat-label { font-size:9px; }
+    .book-grid { grid-template-columns:1fr; }
+    .modal { padding:20px; }
+    .modal-header { flex-direction:column; align-items:center; text-align:center; }
+    .tabs { overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1><span class="emoji">📚</span> Read for Rewards <span id="versionBadge" style="font-size:12px;font-weight:400;color:var(--muted);vertical-align:middle;cursor:pointer;-webkit-user-select:none;user-select:none;" onclick="handleAdminTap()">V1.8</span><span class="admin-badge" id="adminBadge">ADMIN</span></h1>
+  </div>
+  <p class="subtitle">Earn rewards for completing great books or memorizing scripture. To prove and complete an item, you'll need to complete a small interview with Will to show understanding or recite the scripture.</p>
+  <div class="reward-pot-banner" id="rewardPotBanner">
+    <div class="reward-pot-left">
+      <div class="reward-pot-icon">🏆</div>
+      <div>
+        <div class="reward-pot-title">Reward Pot</div>
+        <div class="reward-pot-amount" id="potRemaining">$2,500</div>
+      </div>
+    </div>
+    <div class="reward-pot-right">
+      <div class="reward-pot-remaining" id="potStatus">$2,500 remaining · First come, first served!</div>
+      <div class="reward-pot-bar"><div class="reward-pot-fill" id="potFill" style="width:100%"></div></div>
+    </div>
+  </div>
+  <div class="stats-row" id="statsRow">
+    <div class="stat-pill"><span class="stat-icon">👥</span><div><div class="stat-val purple" id="statReaders">—</div><div class="stat-label">Readers</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">✅</span><div><div class="stat-val green" id="statCompleted">—</div><div class="stat-label">Completed</div></div></div>
+    <div class="stat-pill"><span class="stat-icon">💰</span><div><div class="stat-val gold" id="statEarned">$0</div><div class="stat-label">Claimed</div></div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="books">📚 Books</div>
+  <div class="tab" data-tab="progress">📝 Update Progress</div>
+  <div class="tab" data-tab="leaderboard">🏆 Leaderboard</div>
+</div>
+
+<div class="content">
+  <!-- Books Tab -->
+  <div class="tab-panel active" id="panel-books">
+    <div class="cat-filters" id="catFilters">
+      <button class="cat-btn active" data-cat="all" onclick="filterCat('all')">All</button>
+      <button class="cat-btn" data-cat="religious" onclick="filterCat('religious')">✝️ Religious</button>
+      <button class="cat-btn" data-cat="thinking" onclick="filterCat('thinking')">🧠 Thinking</button>
+      <button class="cat-btn" data-cat="fiction" onclick="filterCat('fiction')">🐉 Fiction</button>
+      <button class="cat-btn" data-cat="scripture" onclick="filterCat('scripture')">📜 Memorize Scripture</button>
+      <button class="cat-btn" data-cat="new" onclick="filterCat('new')">✨ New</button>
+      <button class="cat-btn" data-cat="recommended" onclick="filterCat('recommended')">⭐ Highly Recommended</button>
+    </div>
+    <div class="loading" id="booksLoading"><div class="spinner"></div>Loading books…</div>
+    <div class="book-grid" id="bookGrid"></div>
+  </div>
+
+  <!-- Update Progress Tab -->
+  <div class="tab-panel" id="panel-progress">
+    <div class="update-panel">
+      <h2>📝 Update Your Reading Progress</h2>
+      <p class="desc">Click on an active reading below to update it, or use the form to start something new.</p>
+      <div class="activity-list" id="activityList"></div>
+      <hr class="activity-divider">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">Start New or Manual Update</h3>
+      <div class="form-group">
+        <label>Your Name</label>
+        <select id="readerSelect"><option value="">Select your name…</option></select>
+        <div style="margin-top:8px;">
+          <span style="font-size:12px;color:var(--muted);">New reader?</span>
+          <input type="text" id="newReaderName" placeholder="Type your name…" style="display:none;margin-top:6px;">
+          <button onclick="toggleNewReader()" id="newReaderBtn" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-weight:600;">+ Add yourself</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Book</label>
+        <select id="bookSelect"><option value="">Select a book…</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label id="currentPageLabel">Current Page</label>
+          <input type="number" id="currentPage" placeholder="e.g. 142" min="0">
+        </div>
+        <div class="form-group">
+          <label id="totalPagesLabel">Total Pages</label>
+          <input type="number" id="totalPages" placeholder="e.g. 320" min="1" disabled>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label>Progress</label>
+        <div class="progress-bar" style="height:10px;border-radius:5px;">
+          <div class="progress-fill reading" id="formProgress" style="width:0%;border-radius:5px;"></div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;" id="formPct">0%</div>
+      </div>
+      <button class="btn-submit" id="submitBtn" disabled>Update Progress</button>
+      <div class="form-msg" id="formMsg"></div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Tab -->
+  <div class="tab-panel" id="panel-leaderboard">
+    <div class="leaderboard">
+      <h2>🏆 Leaderboard</h2>
+      <p class="desc">Top readers by rewards earned from completed books.</p>
+      <div id="leaderboardList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Book Detail Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-header">
+      <div class="modal-cover" id="modalCover"></div>
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-author" id="modalAuthor"></div>
+        <div class="modal-stars" id="modalStars"></div>
+        <div class="modal-reward" id="modalReward"></div>
+        <div class="readers-badge" id="modalReaderCount"></div>
+      </div>
+    </div>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-readers" id="modalReaders">
+      <h3>👥 Readers</h3>
+      <div id="modalReaderList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───
+// Replace these after creating the Google Sheet
+const SHEET_ID = '1ZtV8B6NDoSpKEasGwdX9bk13hi4Gj4YIne-6ipyXVe8';
+const BOOKS_GID = '0';
+const READERS_GID = '163992757';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGh5WSuUh1sDxdWf69jW-uRVCxkK4wiheO1znc-oHN3P5MXi3v9TNV0VieAvSvBglj/exec';
+
+// CSV base for reading
+const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=`;
+
+// ─── NO PLACEHOLDER DATA — Google Sheet is the sole source of truth ───
+/*
+const PLACEHOLDER_BOOKS = [
+  // Religious
+  { title:"Every Good Endeavor", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/1594632820-L.jpg", reward:12, summary:"In a work world that is increasingly competitive and insecure, Keller shows that the Bible's wisdom is more relevant than ever. He explains why work is both painful and fruitful, and how Christians can find deep satisfaction and meaning in any vocation by connecting their daily labor to God's work in the world.", rating:4.16, genre:"Faith & Work", totalPages:272, category:"Religious" },
+  { title:"The Ruthless Elimination of Hurry", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0525653090-L.jpg", reward:10, summary:"Pastor John Mark Comer discovered he was dangerously close to burnout. Drawing from the teachings of Jesus, he lays out a practical roadmap for slowing down and learning to live an unhurried life of emotional health and spiritual vitality in the chaos of the modern world.", rating:4.24, genre:"Spiritual Life", totalPages:304, category:"Religious" },
+  { title:"The Great Divorce", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0060652950-L.jpg", reward:8, summary:"C.S. Lewis imagines a bus ride from Hell to Heaven in this theological dream vision. The passengers discover they can stay in Heaven if they let go of a single damning fault. A brilliant exploration of how we choose between self and God, pride and joy, holding on and letting go.", rating:4.15, genre:"Theology", totalPages:160, category:"Religious", recommended:true },
+  { title:"Another Gospel? (Student Edition)", author:"Alisa Childers", cover:"https://m.media-amazon.com/images/P/B0DYYMF418.01._SCLZZZZZZZ_SX500_.jpg", reward:35, summary:"A lifelong Christian seeks truth in response to progressive Christianity. Alisa Childers describes her journey wrestling with questions that struck at the core of her faith after encountering a progressive pastor. With compelling stories and discussion questions designed for young adults, she examines what the Bible really says and helps readers find clarity in a culture of endless questions.", rating:4.55, genre:"Apologetics", totalPages:288, category:"Religious", recommended:true },
+  { title:"Loveology", author:"John Mark Comer", cover:"https://covers.openlibrary.org/b/isbn/0310337267-L.jpg", reward:10, summary:"A fresh, biblical look at love, marriage, sex, and the never-ending story of male and female. Comer traces the Bible's narrative from Genesis to Revelation, presenting a theology of sexuality that is both intellectually honest and deeply practical for singles, engaged couples, and the newly married.", rating:3.93, genre:"Relationships", totalPages:256, category:"Religious" },
+  // Thinking
+  { title:"The Anxious Generation", author:"Jonathan Haidt", cover:"https://covers.openlibrary.org/b/isbn/0593655036-L.jpg", reward:15, summary:"Social psychologist Jonathan Haidt lays out the facts about the epidemic of teen mental illness hitting countries worldwide. He investigates how smartphones and social media have rewired childhood, and proposes practical solutions for parents, teachers, and policymakers to reverse the damage.", rating:4.06, genre:"Psychology", totalPages:385, category:"Thinking", recommended:true },
+  { title:"12 Rules for Life", author:"Jordan B. Peterson", cover:"https://covers.openlibrary.org/b/isbn/0345816021-L.jpg", reward:15, summary:"Renowned psychologist Jordan Peterson provides twelve practical and profound rules for life, drawing from philosophy, psychology, mythology, religion, and personal experience. From standing up straight to telling the truth, each rule is an antidote to the chaos of modern existence.", rating:3.89, genre:"Psychology", totalPages:409, category:"Thinking" },
+  { title:"Animal Farm", author:"George Orwell", cover:"https://covers.openlibrary.org/b/isbn/0451526341-L.jpg", reward:5, summary:"Orwell's timeless allegorical novella about a farm where overworked animals revolt against their human masters, only to fall under an even more oppressive regime of their own making. A scathing satire of totalitarianism and a warning about the corruption of power.", rating:3.98, genre:"Political Satire", totalPages:141, category:"Thinking", recommended:true },
+  { title:"The Bitcoin Standard", author:"Saifedean Ammous", cover:"https://m.media-amazon.com/images/P/1119473861.01._SCLZZZZZZZ_SX500_.jpg", reward:12, summary:"The first comprehensive examination of Bitcoin through the lens of economic history. Ammous traces the history of money and explains how Bitcoin represents a decentralized alternative to central banking, offering sound money principles in the digital age.", rating:4.14, genre:"Economics", totalPages:304, category:"Thinking" },
+  { title:"Rich Dad Poor Dad", author:"Robert Kiyosaki", cover:"https://covers.openlibrary.org/b/isbn/1612680194-L.jpg", reward:8, summary:"The #1 personal finance book of all time. Kiyosaki shares the story of his two dads — his real father and his best friend's father — and how both men shaped his thoughts about money and investing. Advocates for financial literacy and building assets over working for a paycheck.", rating:4.11, genre:"Finance", totalPages:336, category:"Thinking" },
+  { title:"One Rental at a Time", author:"Michael Zuber", cover:"https://covers.openlibrary.org/b/isbn/1793142203-L.jpg", reward:8, summary:"Michael Zuber shares his journey from a regular tech worker to financial independence through rental property investing. A practical, no-nonsense guide to building a real estate portfolio one property at a time, covering deal analysis, financing, management, and scaling.", rating:4.18, genre:"Real Estate", totalPages:170, category:"Thinking" },
+  { title:"Live Not by Lies", author:"Rod Dreher", cover:"https://m.media-amazon.com/images/P/0593087399.01._SCLZZZZZZZ_SX500_.jpg", reward:12, summary:"Drawing on the experience of Christians who survived Soviet communism, Dreher shows how soft totalitarianism is rising in the West. A manual for Christian dissidents on how to recognize pre-totalitarian conditions, resist cultural pressure, and preserve faith under hostile regimes.", rating:4.20, genre:"Politics & Faith", totalPages:240, category:"Thinking" },
+  { title:"Basic Economics", author:"Thomas Sowell", cover:"https://covers.openlibrary.org/b/isbn/0465060730-L.jpg", reward:15, summary:"Thomas Sowell breaks down fundamental economic principles without jargon, charts, or graphs. With clear explanations of everything from rent control to international trade, this citizen's guide to economics reveals the hidden consequences of political and economic decisions.", rating:4.34, genre:"Economics", totalPages:704, category:"Thinking" },
+  // Fiction
+  { title:"The Eye of the World", author:"Robert Jordan", cover:"https://covers.openlibrary.org/b/isbn/0812511816-L.jpg", reward:15, summary:"The first book in the legendary Wheel of Time series. In a world where the Dark One stirs, five young villagers are swept into an epic quest when a mysterious woman reveals they hold the key to an ancient prophecy. A sweeping fantasy of destiny, magic, and the eternal battle between Light and Shadow.", rating:4.19, genre:"Epic Fantasy", totalPages:688, category:"Fiction" },
+  { title:"Age of Myth", author:"Michael J. Sullivan", cover:"https://covers.openlibrary.org/b/isbn/1101965339-L.jpg", reward:12, summary:"The first book in the Legends of the First Empire series. For thousands of years, humans have worshipped the Fhrey as gods — until the day a Fhrey is killed by a human. Now the balance of power shifts, and an unlikely group must discover the truth about the gods they've always served.", rating:4.21, genre:"Epic Fantasy", totalPages:432, category:"Fiction", recommended:true },
+  { title:"Out of the Silent Planet", author:"C.S. Lewis", cover:"https://covers.openlibrary.org/b/isbn/0007157150-L.jpg", reward:8, summary:"The first novel in C.S. Lewis's Space Trilogy. Dr. Ransom, a Cambridge philologist, is kidnapped and taken to Malacandra (Mars), where he discovers a world of unfallen creatures and encounters a cosmic spiritual reality that reshapes his understanding of the universe and humanity's place in it.", rating:3.93, genre:"Science Fiction", totalPages:160, category:"Fiction" },
+  { title:"Artemis", author:"Andy Weir", cover:"https://m.media-amazon.com/images/P/0553448129.01._SCLZZZZZZZ_SX500_.jpg", reward:15, summary:"Jazz Bashara is a criminal. Well, sort of. She's a smuggler on Artemis — humanity's first and only city on the moon. When she stumbles onto a conspiracy for control of the city, she has to use every ounce of her wits and street smarts to stay alive and save her home. A heist thriller set on the lunar surface from the author of The Martian.", rating:3.65, genre:"Science Fiction", totalPages:305, category:"Fiction" },
+  { title:"Mistborn: The Final Empire", author:"Brandon Sanderson", cover:"https://covers.openlibrary.org/b/isbn/0765377136-L.jpg", reward:15, summary:"For a thousand years, ash has fallen and the Lord Ruler has reigned with absolute power. A thieving crew led by a half-Skaa rebel and a young girl who discovers she has extraordinary powers plot an audacious heist: overthrow the immortal emperor. A masterclass in fantasy world-building.", rating:4.49, genre:"Epic Fantasy", totalPages:664, category:"Fiction" },
+  { title:"The Frugal Wizard's Handbook for Surviving Medieval England", author:"Brandon Sanderson", cover:"https://covers.openlibrary.org/b/isbn/1250899672-L.jpg", reward:10, summary:"A man awakes in a clearing in what appears to be medieval England with no memory of who he is or how he got there. His only clue is a destroyed guidebook. Part sci-fi, part fish-out-of-water comedy, Sanderson delivers an inventive standalone adventure about identity, redemption, and time-displaced tourism.", rating:3.62, genre:"Sci-Fi Fantasy", totalPages:378, category:"Fiction" },
+  // Scripture Memorization
+  { title:"Hebrews 11", author:"ESV, NIV or ask for others", cover:"", reward:150, summary:"The Hall of Faith. \"Now faith is the assurance of things hoped for, the conviction of things not seen.\" This chapter walks through the great heroes of faith — Abel, Enoch, Noah, Abraham, Sarah, Moses, Rahab, David — and how each one lived by faith in what God promised, even when they couldn't see it yet. The ultimate chapter on what it means to trust God.", rating:5.0, genre:"Scripture Memorization", totalPages:40, category:"Scripture" },
+  { title:"Hebrews 12:1-2", author:"ESV, NIV or ask for others", cover:"", reward:7, summary:"\"Therefore, since we are surrounded by so great a cloud of witnesses, let us also lay aside every weight, and sin which clings so closely, and let us run with endurance the race that is set before us, looking to Jesus, the founder and perfecter of our faith, who for the joy that was set before him endured the cross, despising the shame, and is seated at the right hand of the throne of God.\" The bridge from the Hall of Faith — all those heroes are cheering you on. Now run YOUR race, eyes on Jesus.", rating:5.0, genre:"Scripture Memorization", totalPages:2, category:"Scripture" },
+  { title:"Hebrews 13:1-6", author:"ESV, NIV or ask for others", cover:"", reward:5, summary:"\"Let brotherly love continue. Do not neglect to show hospitality to strangers, for thereby some have entertained angels unawares. Remember those who are in prison, as though in prison with them, and those who are mistreated, since you also are in the body. Let marriage be held in honor among all… Keep your life free from love of money, and be content with what you have, for he has said, 'I will never leave you nor forsake you.' So we can confidently say, 'The Lord is my helper; I will not fear; what can man do to me?'\"", rating:5.0, genre:"Scripture Memorization", totalPages:6, category:"Scripture" },
+  { title:"James 1", author:"ESV, NIV or ask for others", cover:"", reward:20, summary:"Trials, wisdom, and true religion. \"Count it all joy, my brothers, when you meet trials of various kinds, for you know that the testing of your faith produces steadfastness.\" James covers asking God for wisdom, the danger of doubting, the blessing of enduring temptation, being doers of the word and not hearers only, and pure religion — caring for orphans and widows.", rating:5.0, genre:"Scripture Memorization", totalPages:27, category:"Scripture" },
+  { title:"The Romans Road", author:"ESV, NIV or ask for others", cover:"", reward:10, summary:"The gospel in 9 verses: Romans 3:23 — \"For all have sinned and fall short of the glory of God.\" Romans 6:23 — \"For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.\" Romans 5:8 — \"But God shows his love for us in that while we were still sinners, Christ died for us.\" Romans 10:9 — \"If you confess with your mouth that Jesus is Lord and believe in your heart that God raised him from the dead, you will be saved.\" Romans 10:10 — \"For with the heart one believes and is justified, and with the mouth one confesses and is saved.\" Romans 10:13 — \"For everyone who calls on the name of the Lord will be saved.\" Romans 5:1 — \"Therefore, since we have been justified by faith, we have peace with God through our Lord Jesus Christ.\" Romans 8:1 — \"There is therefore now no condemnation for those who are in Christ Jesus.\" Romans 8:38-39 — \"For I am sure that neither death nor life, nor angels nor rulers, nor things present nor things to come, nor powers, nor height nor depth, nor anything else in all creation, will be able to separate us from the love of God in Christ Jesus our Lord.\"", rating:5.0, genre:"Scripture Memorization", totalPages:9, category:"Scripture" },
+  { title:"Proverbs: Wisdom & Counsel", author:"ESV, NIV or ask for others", cover:"", reward:5, summary:"Five key Proverbs on wisdom and seeking counsel: Proverbs 1:7 — \"The fear of the LORD is the beginning of knowledge; fools despise wisdom and instruction.\" Proverbs 3:5-6 — \"Trust in the LORD with all your heart, and do not lean on your own understanding. In all your ways acknowledge him, and he will make straight your paths.\" Proverbs 4:7 — \"The beginning of wisdom is this: Get wisdom, and whatever you get, get insight.\" Proverbs 11:14 — \"Where there is no guidance, a people falls, but in an abundance of counselors there is safety.\" Proverbs 15:22 — \"Without counsel plans fail, but with many advisers they succeed.\"", rating:5.0, genre:"Scripture Memorization", totalPages:7, category:"Scripture" },
+  { title:"Romans 8:28-39", author:"ESV, NIV or ask for others", cover:"", reward:10, summary:"Nothing can separate us. \"And we know that for those who love God all things work together for good, for those who are called according to his purpose. For those whom he foreknew he also predestined to be conformed to the image of his Son… What then shall we say to these things? If God is for us, who can be against us?… Who shall separate us from the love of Christ? Shall tribulation, or distress, or persecution, or famine, or nakedness, or danger, or sword?… No, in all these things we are more than conquerors through him who loved us.\"", rating:5.0, genre:"Scripture Memorization", totalPages:12, category:"Scripture" },
+  { title:"Romans 8:18", author:"ESV, NIV or ask for others", cover:"", reward:2, summary:"\"For I consider that the sufferings of this present time are not worth comparing with the glory that is to be revealed to us.\"", rating:5.0, genre:"Scripture Memorization", totalPages:1, category:"Scripture" },
+  { title:"Romans 12", author:"ESV, NIV or ask for others", cover:"", reward:100, summary:"The Christian life in practice. \"I appeal to you therefore, brothers, by the mercies of God, to present your bodies as a living sacrifice, holy and acceptable to God, which is your spiritual worship. Do not be conformed to this world, but be transformed by the renewal of your mind…\" Covers spiritual gifts, genuine love, blessing those who persecute you, living in harmony, and overcoming evil with good.", rating:5.0, genre:"Scripture Memorization", totalPages:21, category:"Scripture" },
+  { title:"Romans 12:9-21", author:"ESV, NIV or ask for others", cover:"", reward:60, summary:"Love in action. \"Let love be genuine. Abhor what is evil; hold fast to what is good. Love one another with brotherly affection. Outdo one another in showing honor. Do not be slothful in zeal, be fervent in spirit, serve the Lord. Rejoice in hope, be patient in tribulation, be constant in prayer… Bless those who persecute you; bless and do not curse them… Do not be overcome by evil, but overcome evil with good.\" The practical heart of Romans 12 — a powerful passage on what Christ-like love looks like in everyday life.", rating:5.0, genre:"Scripture Memorization", totalPages:13, category:"Scripture", recommended:true },
+  { title:"Galatians 5:22-26", author:"ESV, NIV or ask for others", cover:"", reward:5, summary:"The Fruit of the Spirit. \"But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, self-control; against such things there is no law. And those who belong to Christ Jesus have crucified the flesh with its passions and desires. If we live by the Spirit, let us also keep in step with the Spirit. Let us not become conceited, provoking one another, envying one another.\"", rating:5.0, genre:"Scripture Memorization", totalPages:5, category:"Scripture" },
+  { title:"Ephesians 2", author:"ESV, NIV or ask for others", cover:"", reward:15, summary:"Saved by grace through faith. \"And you were dead in the trespasses and sins in which you once walked… But God, being rich in mercy, because of the great love with which he loved us, even when we were dead in our trespasses, made us alive together with Christ — by grace you have been saved… For by grace you have been saved through faith. And this is not your own doing; it is the gift of God, not a result of works, so that no one may boast. For we are his workmanship, created in Christ Jesus for good works.\"", rating:5.0, genre:"Scripture Memorization", totalPages:22, category:"Scripture" },
+  { title:"Ephesians 4:31-32", author:"ESV, NIV or ask for others", cover:"", reward:2, summary:"\"Let all bitterness and wrath and anger and clamor and slander be put away from you, along with all malice. Be kind to one another, tenderhearted, forgiving one another, as God in Christ forgave you.\"", rating:5.0, genre:"Scripture Memorization", totalPages:2, category:"Scripture" },
+  { title:"Ephesians 6:5-9", author:"ESV, NIV or ask for others", cover:"", reward:5, summary:"\"Bondservants, obey your earthly masters with fear and trembling, with a sincere heart, as you would Christ, not by the way of eye-service, as people-pleasers, but as bondservants of Christ, doing the will of God from the heart, rendering service with a good will as to the Lord and not to man, knowing that whatever good anyone does, this he will receive back from the Lord, whether he is a bondservant or is free. Masters, do the same to them, and stop your threatening, knowing that he who is both their Master and yours is in heaven, and that there is no partiality with him.\"", rating:5.0, genre:"Scripture Memorization", totalPages:5, category:"Scripture" },
+  { title:"Philippians 2", author:"ESV, NIV or ask for others", cover:"", reward:20, summary:"The mind of Christ and humility. \"Do nothing from selfish ambition or conceit, but in humility count others more significant than yourselves. Let each of you look not only to his own interests, but also to the interests of others. Have this mind among yourselves, which is yours in Christ Jesus, who, though he was in the form of God, did not count equality with God a thing to be grasped, but emptied himself, by taking the form of a servant… Do all things without grumbling or disputing, that you may be blameless and innocent, children of God… holding fast to the word of life.\"", rating:5.0, genre:"Scripture Memorization", totalPages:30, category:"Scripture" },
+  { title:"Philippians 3:19-21", author:"ESV, NIV or ask for others", cover:"", reward:3, summary:"\"Their end is destruction, their god is their belly, and they glory in their shame, with minds set on earthly things. But our citizenship is in heaven, and from it we await a Savior, the Lord Jesus Christ, who will transform our lowly body to be like his glorious body, by the power that enables him even to subject all things to himself.\"", rating:5.0, genre:"Scripture Memorization", totalPages:3, category:"Scripture" },
+  { title:"Matthew 6:25-34", author:"ESV, NIV or ask for others", cover:"", reward:8, summary:"Do not be anxious. \"Therefore I tell you, do not be anxious about your life, what you will eat or what you will drink, nor about your body, what you will put on. Is not life more than food, and the body more than clothing? Look at the birds of the air: they neither sow nor reap nor gather into barns, and yet your heavenly Father feeds them. Are you not of more value than they?… But seek first the kingdom of God and his righteousness, and all these things will be added to you. Therefore do not be anxious about tomorrow, for tomorrow will be anxious for itself. Sufficient for the day is its own trouble.\"", rating:5.0, genre:"Scripture Memorization", totalPages:10, category:"Scripture" },
+  { title:"Matthew 16:24-28", author:"ESV, NIV or ask for others", cover:"", reward:5, summary:"\"Then Jesus told his disciples, 'If anyone would come after me, let him deny himself and take up his cross and follow me. For whoever would save his life will lose it, but whoever loses his life for my sake will find it. For what will it profit a man if he gains the whole world and forfeits his soul? Or what shall a man give in return for his soul? For the Son of Man is going to come with his angels in the glory of his Father, and then he will repay each person according to what he has done.'\"", rating:5.0, genre:"Scripture Memorization", totalPages:5, category:"Scripture" },
+  { title:"So Good They Can't Ignore You", author:"Cal Newport", cover:"https://covers.openlibrary.org/b/isbn/1455509124-L.jpg", reward:20, summary:"Cal Newport debunks the passion hypothesis — the idea that the key to loving your work is to follow your passion. Instead he argues that building rare and valuable skills (career capital) is what creates work you love. Packed with real stories of people who found fulfilling careers by getting really good at something first.", rating:4.05, genre:"Career & Skills", totalPages:288, category:"Thinking" },
+  { title:"The Psychology of Money", author:"Morgan Housel", cover:"https://covers.openlibrary.org/b/isbn/0857197681-L.jpg", reward:20, summary:"In 19 short stories Housel explores the strange ways people think about money. Doing well with money has little to do with how smart you are and a lot to do with how you behave. This book is about the psychology of money — the soft skills that matter more than the technical side of finance.", rating:4.27, genre:"Finance", totalPages:242, category:"Thinking" },
+  { title:"Prayer: Experiencing Awe and Intimacy with God", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/0525954147-L.jpg", reward:25, summary:"Keller explores the power of prayer through the teachings of great Christians throughout history and the Bible. He shows how prayer is the only entryway into genuine self-knowledge and the main way we experience deep change. A practical guide to making prayer more personal and powerful.", rating:4.32, genre:"Prayer & Spiritual Life", totalPages:336, category:"Religious" },
+  { title:"The Chronicles of Narnia", author:"C.S. Lewis", cover:"https://books.google.com/books/content?id=fMLiEAAAQBAJ&printsec=frontcover&img=1&zoom=2&source=gbs_api", reward:80, summary:"All seven books of the beloved Narnia series in one epic collection. From the lamppost in the snowy wood to the last battle at the end of the world — journey through the wardrobe into the magical land of Narnia with Peter, Susan, Edmund, and Lucy. A timeless adventure of courage, faith, and the eternal battle between good and evil.", rating:4.28, genre:"Fantasy", totalPages:767, category:"Fiction", seriesNote:"7 books in the series. $10 per individual book, or $80 for the complete series (7 × $10 + $10 bonus)." },
+  { title:"Romans For You", author:"Timothy Keller", cover:"https://covers.openlibrary.org/b/isbn/1908762918-L.jpg", reward:25, summary:"Keller walks through the book of Romans passage by passage making the theology accessible and immediately applicable. Not quite a commentary but deeper than a devotional — a rich guide to the most foundational letter Paul ever wrote. Covers the gospel, justification by faith, life in the Spirit, and practical Christian living.", rating:4.52, genre:"Bible Study", totalPages:208, category:"Religious" }
+];
+
+const PLACEHOLDER_READERS = [
+  { name:"Ezra", book:"Animal Farm", startDate:"2026-02-15", currentPage:95, totalPages:141, status:"reading" },
+  { name:"Ezra", book:"The Great Divorce", startDate:"2026-01-10", currentPage:160, totalPages:160, status:"completed" },
+  { name:"Levi", book:"The Eye of the World", startDate:"2026-02-20", currentPage:210, totalPages:688, status:"reading" },
+  { name:"Levi", book:"Animal Farm", startDate:"2026-01-05", currentPage:141, totalPages:141, status:"completed" },
+  { name:"Will", book:"The Ruthless Elimination of Hurry", startDate:"2026-03-01", currentPage:120, totalPages:304, status:"reading" },
+  { name:"Will", book:"12 Rules for Life", startDate:"2026-01-20", currentPage:409, totalPages:409, status:"completed" },
+  { name:"Will", book:"Mistborn: The Final Empire", startDate:"2026-02-01", currentPage:664, totalPages:664, status:"completed" },
+  { name:"Sarah", book:"Every Good Endeavor", startDate:"2026-02-25", currentPage:85, totalPages:272, status:"reading" },
+  { name:"Sarah", book:"Loveology", startDate:"2026-01-15", currentPage:256, totalPages:256, status:"completed" },
+  { name:"Ben", book:"Rich Dad Poor Dad", startDate:"2026-03-01", currentPage:60, totalPages:336, status:"reading" },
+];
+*/
+
+// ─── STATE ───
+let books = [];
+let readers = [];
+let useSheet = false;
+
+// ─── CSV PARSER ───
+function parseCSV(text) {
+  const lines = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i+1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (c === ',' && !inQuotes) {
+      lines.push(current); current = '';
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
+      if (current || lines.length) { lines.push(current); }
+      if (lines.length) { yield_row(lines); }
+      lines.length = 0; current = '';
+      if (c === '\r' && text[i+1] === '\n') i++;
+    } else { current += c; }
+  }
+  if (current || lines.length) { lines.push(current); }
+
+  // Collect all rows
+  const allRows = [];
+  function yield_row(fields) { allRows.push([...fields]); }
+
+  // Re-parse properly
+  return parseCSVProper(text);
+}
+
+function parseCSVProper(text) {
+  const rows = [];
+  let i = 0;
+  while (i < text.length) {
+    const row = [];
+    while (i < text.length) {
+      let val = '';
+      if (text[i] === '"') {
+        i++;
+        while (i < text.length) {
+          if (text[i] === '"') {
+            if (text[i+1] === '"') { val += '"'; i += 2; }
+            else { i++; break; }
+          } else { val += text[i]; i++; }
+        }
+      } else {
+        while (i < text.length && text[i] !== ',' && text[i] !== '\n' && text[i] !== '\r') {
+          val += text[i]; i++;
+        }
+      }
+      row.push(val.trim());
+      if (i < text.length && text[i] === ',') { i++; }
+      else break;
+    }
+    if (text[i] === '\r') i++;
+    if (text[i] === '\n') i++;
+    if (row.length > 0 && row.some(c => c)) rows.push(row);
+  }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z0-9]/g,'_'));
+  return rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h,idx) => obj[h] = r[idx] || '');
+    return obj;
+  });
+}
+
+// ─── DATA LOADING ───
+async function loadData() {
+  try {
+    if (SHEET_ID === 'YOUR_SHEET_ID_HERE') throw new Error('No sheet configured');
+
+    async function fetchCSV(gid) {
+      const url = CSV_BASE + gid;
+      try {
+        const r = await fetch(url);
+        if (r.ok) return r.text();
+      } catch(e) {}
+      // CORS fallback
+      const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+      const r2 = await fetch(proxy);
+      if (!r2.ok) throw new Error('CSV fetch failed');
+      return r2.text();
+    }
+
+    const [booksResp, readersResp] = await Promise.all([
+      fetchCSV(BOOKS_GID),
+      fetchCSV(READERS_GID)
+    ]);
+
+    const booksData = parseCSVProper(booksResp);
+    const readersData = parseCSVProper(readersResp);
+
+    books = booksData.map(b => ({
+      title: b.title || '',
+      author: b.author || '',
+      cover: b.cover_url || b.cover || '',
+      reward: parseFloat(b.reward) || 0,
+      summary: b.summary || '',
+      rating: parseFloat(b.goodreads_rating || b.rating) || 0,
+      genre: b.genre || '',
+      totalPages: parseInt(b.total_pages) || 0,
+      category: b.category || '',
+      recommended: (b.recommended || '').toLowerCase() === 'yes',
+      pending: (b.recommended || '').toLowerCase() === 'pending',
+      isNew: (b.new || '').toLowerCase() === 'yes'
+    }));
+
+    readers = readersData.map(r => {
+      let status = (r.status || 'reading').toLowerCase().trim();
+      // Legacy: sheet says 'completed' but was never approved → treat as pending_review
+      if (status === 'completed') status = 'pending_review';
+      // Only 'approved' in sheet = truly completed
+      if (status === 'approved') status = 'completed';
+      return {
+        name: r.name || r.reader_name || '',
+        book: r.book || r.book_title || '',
+        startDate: r.start_date || '',
+        currentPage: parseInt(r.current_page) || 0,
+        totalPages: parseInt(r.total_pages) || 0,
+        status
+      };
+    });
+
+    useSheet = true;
+  } catch(e) {
+    console.error('Failed to load data from Google Sheet:', e.message);
+    books = [];
+    readers = [];
+    useSheet = false;
+    document.getElementById('booksLoading').innerHTML = '<p style="color:#c44;text-align:center;padding:20px;">\u26a0\ufe0f Could not load data from Google Sheet. Please check your connection and reload.</p>';
+  }
+  render();
+}
+
+// ─── RENDER ───
+function render() {
+  renderStats();
+  renderBooks();
+  renderActivities();
+  renderForm();
+  renderLeaderboard();
+  document.getElementById('booksLoading').style.display = 'none';
+}
+
+const REWARD_POT = 2500;
+
+function renderStats() {
+  const uniqueReaders = [...new Set(readers.map(r => r.name))];
+  const completed = readers.filter(r => r.status === 'completed');
+  const earned = completed.reduce((sum, r) => {
+    const book = books.find(b => b.title === r.book);
+    return sum + (book ? book.reward : 0);
+  }, 0);
+
+  const remaining = Math.max(REWARD_POT - earned, 0);
+  const pct = Math.round((remaining / REWARD_POT) * 100);
+
+  document.getElementById('statReaders').textContent = uniqueReaders.length;
+  document.getElementById('statCompleted').textContent = completed.length;
+  document.getElementById('statEarned').textContent = '$' + earned;
+
+  // Reward pot banner
+  document.getElementById('potRemaining').textContent = '$' + remaining.toLocaleString();
+  document.getElementById('potStatus').textContent = remaining > 0
+    ? `$${remaining.toLocaleString()} remaining · $${earned.toLocaleString()} claimed · First come, first served!`
+    : `All $${REWARD_POT.toLocaleString()} claimed!`;
+  document.getElementById('potFill').style.width = pct + '%';
+}
+
+function getBookReaders(title) {
+  return readers.filter(r => r.book === title);
+}
+
+function renderStars(rating) {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.3;
+  let s = '';
+  for (let i = 0; i < full; i++) s += '★';
+  if (half) s += '☆';
+  return `<span class="stars">${s}</span> <span style="color:var(--muted);font-size:12px;">${rating.toFixed(1)}</span>`;
+}
+
+function coverHTML(book, size) {
+  if (book.cover) {
+    return `<img src="${book.cover}" alt="${book.title}" onerror="this.parentElement.innerHTML='<div class=placeholder-cover>${book.title[0]}</div>'">`;
+  }
+  const icon = (book.category||'').toLowerCase() === 'scripture' ? '📜' : book.title[0];
+  const bg = (book.category||'').toLowerCase() === 'scripture' ? 'background:linear-gradient(135deg,#f59e0b,#d97706);' : 'background:linear-gradient(135deg,var(--accent),var(--purple));';
+  return `<div class="placeholder-cover" style="${bg}">${icon}</div>`;
+}
+
+let activeCat = 'all';
+
+function renderBooks() {
+  const grid = document.getElementById('bookGrid');
+  grid.innerHTML = books.map((b, i) => {
+    const br = getBookReaders(b.title);
+    const active = br.filter(r => r.status === 'reading').length;
+    const done = br.filter(r => r.status === 'completed').length;
+    const catClass = b.category ? 'cat-' + b.category.toLowerCase() : '';
+    const recClass = b.recommended ? 'recommended' : b.pending ? 'pending-review' : '';
+    return `
+      <div class="book-card ${catClass} ${recClass} ${b.isNew ? 'is-new' : ''}" data-index="${i}" data-category="${(b.category||'').toLowerCase()}" data-recommended="${b.recommended ? 'yes' : ''}" data-new="${b.isNew ? 'yes' : ''}" onclick="openModal(${i})">
+        <span class="new-badge">✨ NEW</span>
+        <div class="book-card-inner">
+          <div class="book-cover">${coverHTML(b)}</div>
+          <div class="book-info">
+            <div class="book-title">${b.title}</div>
+            <div class="book-author">by ${b.author}</div>
+            <div style="margin-bottom:6px;">${(b.category||'').toLowerCase()==='scripture' ? '<span style="color:var(--gold);font-size:11px;font-weight:600;">📖 Memorize & recite to Will</span>' : renderStars(b.rating)}</div>
+            <div class="book-meta">
+              <div class="reward-badge">${b.pending ? '⏳ Pending' : `💰 $${b.reward}`}</div>
+              ${active ? `<div class="readers-badge"><span class="dot dot-active"></span>${active} reading</div>` : ''}
+              ${done ? `<div class="readers-badge"><span class="dot dot-completed"></span>${done} done</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  // Re-apply active filter
+  if (activeCat !== 'all') filterCat(activeCat);
+}
+
+function filterCat(cat) {
+  activeCat = cat;
+  // Update button states
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  const grid = document.getElementById('bookGrid');
+  if (!grid) return;
+  const cards = Array.from(grid.children);
+  
+  if (cat === 'all') {
+    // Restore original order
+    cards.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    cards.forEach(card => {
+      card.classList.remove('dimmed');
+      grid.appendChild(card);
+    });
+  } else {
+    const matching = [];
+    const dimmed = [];
+    cards.forEach(card => {
+      const matches = cat === 'recommended' ? card.dataset.recommended === 'yes' : cat === 'new' ? card.dataset.new === 'yes' : card.dataset.category === cat;
+      if (matches) {
+        card.classList.remove('dimmed');
+        matching.push(card);
+      } else {
+        card.classList.add('dimmed');
+        dimmed.push(card);
+      }
+    });
+    matching.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    dimmed.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+    matching.forEach(c => grid.appendChild(c));
+    dimmed.forEach(c => grid.appendChild(c));
+  }
+}
+
+function openModal(idx) {
+  const b = books[idx];
+  const br = getBookReaders(b.title);
+
+  document.getElementById('modalCover').innerHTML = coverHTML(b);
+  document.getElementById('modalTitle').textContent = b.title;
+  document.getElementById('modalAuthor').textContent = 'by ' + b.author;
+  document.getElementById('modalStars').innerHTML = (b.category||'').toLowerCase()==='scripture' ? '<span style="color:var(--gold);font-size:13px;font-weight:600;">📖 Memorize & recite to Will to claim reward</span>' : renderStars(b.rating);
+  document.getElementById('modalReward').innerHTML = `<div class="reward-badge" style="font-size:14px;">${b.pending ? '⏳ Pending Review' : `💰 $${b.reward} reward`}</div>`;
+
+  const active = br.filter(r => r.status === 'reading').length;
+  const done = br.filter(r => r.status === 'completed').length;
+  document.getElementById('modalReaderCount').innerHTML = `
+    ${active ? `<span class="dot dot-active"></span>${active} reading` : ''}
+    ${active && done ? '&nbsp;·&nbsp;' : ''}
+    ${done ? `<span class="dot dot-completed"></span>${done} completed` : ''}
+    ${!active && !done ? '<span style="color:var(--muted)">No readers yet</span>' : ''}
+  `;
+
+  const summaryEl = document.getElementById('modalSummary');
+  if (b.seriesNote) {
+    summaryEl.innerHTML = b.summary + `<div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:8px;color:var(--gold);font-size:13px;font-weight:500;">📝 ${b.seriesNote}</div>`;
+  } else {
+    summaryEl.textContent = b.summary;
+  }
+
+  const isScripture = (b.category||'').toLowerCase() === 'scripture';
+  const list = document.getElementById('modalReaderList');
+  if (br.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No one has started this book yet. Be the first!</div>';
+  } else {
+    list.innerHTML = br.map(r => {
+      const pct = r.totalPages ? Math.round((r.currentPage / r.totalPages) * 100) : 0;
+      const isComplete = r.status === 'completed';
+      const isPending = r.status === 'pending_review';
+      const statusText = isComplete ? '✅ Completed' : isPending ? '⏳ Awaiting approval' : `📖 ${isScripture ? 'Verse' : 'Page'} ${r.currentPage} of ${r.totalPages}`;
+      return `
+        <div class="reader-row">
+          <div class="reader-avatar">${r.name[0]}</div>
+          <div class="reader-info">
+            <div class="reader-name">${r.name}</div>
+            <div class="reader-status">${statusText} · Started ${r.startDate}</div>
+          </div>
+          <div class="reader-progress">
+            <div class="progress-bar"><div class="progress-fill ${isComplete ? 'completed' : 'reading'}" style="width:${Math.min(pct,100)}%"></div></div>
+            <div class="progress-pct">${Math.min(pct,100)}%</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+document.getElementById('modalClose').onclick = () => document.getElementById('modalOverlay').classList.remove('open');
+document.getElementById('modalOverlay').onclick = (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); };
+
+// ─── ACTIVITIES ───
+function renderActivities() {
+  const container = document.getElementById('activityList');
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  const pendingReview = readers.filter(r => r.status === 'pending_review');
+  const completedReaders = readers.filter(r => r.status === 'completed');
+
+  let html = '';
+
+  // ── Active Readings ──
+  if (activeReaders.length > 0) {
+    html += '<h3>📖 Active Readings</h3>' + activeReaders.map((r, i) => {
+    const book = books.find(b => b.title === r.book);
+    const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+    const pct = r.totalPages ? Math.min(Math.round((r.currentPage / r.totalPages) * 100), 100) : 0;
+    const unit = isScrip ? 'Verse' : 'Page';
+    return `
+      <div class="activity-card" onclick="selectActivity(${i})" data-activity-idx="${i}">
+        <div class="activity-avatar">${r.name[0]}</div>
+        <div class="activity-info">
+          <div class="activity-name">${r.name}</div>
+          <div class="activity-book">${r.book} · ${unit} ${r.currentPage}/${r.totalPages}</div>
+        </div>
+        <div class="activity-progress">
+          <div class="progress-bar"><div class="progress-fill reading" style="width:${pct}%"></div></div>
+          <div class="activity-pct">${pct}%</div>
+        </div>
+        <div class="approved-check" onclick="event.stopPropagation()">
+          <input type="checkbox" id="approved-${i}" onchange="handleApproval(${i}, this.checked)">
+          <label for="approved-${i}">Will approved</label>
+        </div>
+        <div class="admin-cancel" onclick="event.stopPropagation()">
+          <button onclick="cancelReading('reading', ${i})">✕ Cancel</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Pending Review ──
+  if (pendingReview.length > 0) {
+    html += '<h3>⏳ Completed — Pending Review</h3>' + pendingReview.map((r, i) => {
+      const book = books.find(b => b.title === r.book);
+      const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+      return `
+        <div class="activity-card" style="border-left:3px solid var(--gold);background:rgba(184,134,11,0.05);">
+          <div class="activity-avatar" style="background:var(--gold);color:white;">${r.name[0]}</div>
+          <div class="activity-info">
+            <div class="activity-name">${r.name}</div>
+            <div class="activity-book">${r.book} · ✅ ${isScrip ? 'All verses done' : 'All pages read'} — awaiting interview</div>
+          </div>
+          <div class="approved-check" onclick="event.stopPropagation()">
+            <input type="checkbox" id="pending-${i}" onchange="handlePendingApproval(${i}, this.checked)">
+            <label for="pending-${i}">Approve</label>
+          </div>
+          <div class="admin-cancel" onclick="event.stopPropagation()">
+            <button onclick="cancelReading('pending_review', ${i})">✕ Cancel</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Completed & Approved ──
+  if (completedReaders.length > 0) {
+    html += '<h3>🏆 Completed & Approved</h3>' + completedReaders.map((r) => {
+      const book = books.find(b => b.title === r.book);
+      const reward = book ? book.reward : 0;
+      return `
+        <div class="activity-card" style="border-left:3px solid var(--green);background:rgba(34,197,94,0.04);cursor:default;">
+          <div class="activity-avatar" style="background:var(--green);color:white;">${r.name[0]}</div>
+          <div class="activity-info">
+            <div class="activity-name">${r.name}</div>
+            <div class="activity-book">${r.book} · ✅ Approved${r.startDate ? ' · Started ' + r.startDate : ''}</div>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:var(--gold);font-family:'JetBrains Mono',monospace;flex-shrink:0;">$${reward}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Empty state ──
+  if (activeReaders.length === 0 && pendingReview.length === 0 && completedReaders.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;">No readings yet. Start one below!</div>';
+    return;
+  }
+
+  container.innerHTML = html;
+}
+
+function selectActivity(idx) {
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  const r = activeReaders[idx];
+  if (!r) return;
+
+  // Highlight selected card
+  document.querySelectorAll('.activity-card').forEach(c => c.classList.remove('active-selection'));
+  const card = document.querySelector(`[data-activity-idx="${idx}"]`);
+  if (card) card.classList.add('active-selection');
+
+  // Fill the form
+  const readerSelect = document.getElementById('readerSelect');
+  const bookSelect = document.getElementById('bookSelect');
+  const newReaderInput = document.getElementById('newReaderName');
+
+  // Make sure we're in "existing reader" mode
+  if (newReaderInput.style.display !== 'none') toggleNewReader();
+
+  // Set reader
+  readerSelect.value = r.name;
+  // Set book
+  bookSelect.value = r.book;
+
+  updateFormState();
+
+  // Scroll form into view
+  document.getElementById('currentPage').focus();
+}
+
+function handlePendingApproval(idx, checked) {
+  const pendingReview = readers.filter(r => r.status === 'pending_review');
+  const r = pendingReview[idx];
+  if (!r || !checked) return;
+
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers[readerIdx].status = 'completed';
+
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'approveReading',
+          name: r.name, book: r.book
+        })
+      }).catch(e => console.warn('Sheet write failed:', e));
+    }
+
+    render();
+  }
+}
+
+function handleApproval(idx, checked) {
+  const activeReaders = readers.filter(r => r.status === 'reading');
+  const r = activeReaders[idx];
+  if (!r || !checked) return;
+
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers[readerIdx].currentPage = readers[readerIdx].totalPages;
+    readers[readerIdx].status = 'completed';
+
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'approveReading',
+          name: r.name, book: r.book
+        })
+      }).catch(e => console.warn('Sheet write failed:', e));
+    }
+
+    render();
+  }
+}
+
+function cancelReading(filterStatus, idx) {
+  const filtered = readers.filter(r => r.status === filterStatus);
+  const r = filtered[idx];
+  if (!r) return;
+  if (!confirm(`Cancel "${r.name}" reading "${r.book}"? This will remove it from the log.`)) return;
+
+  const readerIdx = readers.findIndex(rd => rd.name === r.name && rd.book === r.book);
+  if (readerIdx >= 0) {
+    readers.splice(readerIdx, 1);
+
+    // Remove from sheet
+    if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteProgress',
+          name: r.name, book: r.book
+        })
+      }).catch(e => console.warn('Sheet delete failed:', e));
+    }
+
+    render();
+  }
+}
+
+// ─── FORM ───
+function renderForm() {
+  const readerSelect = document.getElementById('readerSelect');
+  const bookSelect = document.getElementById('bookSelect');
+  const uniqueReaders = [...new Set(readers.map(r => r.name))].sort();
+
+  readerSelect.innerHTML = '<option value="">Select your name…</option>' +
+    uniqueReaders.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  bookSelect.innerHTML = '<option value="">Select a book…</option>' +
+    books.map(b => `<option value="${b.title}">${b.title}</option>`).join('');
+}
+
+document.getElementById('readerSelect').onchange = updateFormState;
+document.getElementById('bookSelect').onchange = updateFormState;
+document.getElementById('currentPage').oninput = updateFormProgress;
+
+function toggleNewReader() {
+  const input = document.getElementById('newReaderName');
+  const btn = document.getElementById('newReaderBtn');
+  const select = document.getElementById('readerSelect');
+  if (input.style.display === 'none') {
+    input.style.display = 'block';
+    btn.textContent = '← Use existing name';
+    select.style.display = 'none';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    btn.textContent = '+ Add yourself';
+    select.style.display = 'block';
+    input.value = '';
+  }
+  updateFormState();
+}
+
+function getReaderName() {
+  const newName = document.getElementById('newReaderName');
+  if (newName.style.display !== 'none' && newName.value.trim()) return newName.value.trim();
+  return document.getElementById('readerSelect').value;
+}
+
+function updateFormState() {
+  const reader = getReaderName();
+  const bookTitle = document.getElementById('bookSelect').value;
+  const btn = document.getElementById('submitBtn');
+
+  if (reader && bookTitle) {
+    const existing = readers.find(r => r.name === reader && r.book === bookTitle);
+    const book = books.find(b => b.title === bookTitle);
+    const isScrip = book && (book.category||'').toLowerCase() === 'scripture';
+    document.getElementById('currentPageLabel').textContent = isScrip ? 'Current Verse' : 'Current Page';
+    document.getElementById('totalPagesLabel').textContent = isScrip ? 'Total Verses' : 'Total Pages';
+    document.getElementById('currentPage').placeholder = isScrip ? 'e.g. 5' : 'e.g. 142';
+    const tp = document.getElementById('totalPages');
+
+    if (existing) {
+      document.getElementById('currentPage').value = existing.currentPage;
+      tp.value = existing.totalPages;
+    } else {
+      document.getElementById('currentPage').value = '';
+      // Auto-fill total pages from book data
+      tp.value = book ? (book.totalPages || '') : '';
+    }
+    tp.disabled = false;
+    btn.disabled = false;
+    updateFormProgress();
+  } else {
+    btn.disabled = true;
+  }
+}
+
+// Also listen for new reader name input
+document.getElementById('newReaderName').oninput = updateFormState;
+
+function updateFormProgress() {
+  const cur = parseInt(document.getElementById('currentPage').value) || 0;
+  const tot = parseInt(document.getElementById('totalPages').value) || 1;
+  const pct = Math.min(Math.round((cur / tot) * 100), 100);
+  document.getElementById('formProgress').style.width = pct + '%';
+  document.getElementById('formPct').textContent = pct + '%';
+  if (pct >= 100) {
+    document.getElementById('formProgress').classList.remove('reading');
+    document.getElementById('formProgress').classList.add('completed');
+  } else {
+    document.getElementById('formProgress').classList.add('reading');
+    document.getElementById('formProgress').classList.remove('completed');
+  }
+}
+
+document.getElementById('submitBtn').onclick = async () => {
+  const name = getReaderName();
+  const bookTitle = document.getElementById('bookSelect').value;
+  const currentPage = parseInt(document.getElementById('currentPage').value) || 0;
+  const totalPages = parseInt(document.getElementById('totalPages').value) || 0;
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('submitBtn');
+
+  if (!name || !bookTitle || !totalPages) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+
+  const status = currentPage >= totalPages ? 'pending_review' : 'reading';
+
+  // Update local state
+  const existing = readers.findIndex(r => r.name === name && r.book === bookTitle);
+  if (existing >= 0) {
+    readers[existing].currentPage = currentPage;
+    readers[existing].totalPages = totalPages;
+    readers[existing].status = status;
+  } else {
+    readers.push({
+      name, book: bookTitle,
+      startDate: new Date().toISOString().slice(0,10),
+      currentPage, totalPages, status
+    });
+  }
+
+  // Try to write to Google Sheet
+  if (useSheet && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateProgress',
+          name, book: bookTitle, currentPage, totalPages, status
+        })
+      });
+      if (!resp.ok) throw new Error('Failed');
+    } catch(e) {
+      console.warn('Sheet write failed:', e);
+    }
+  }
+
+  render();
+  const selBook = books.find(b => b.title === bookTitle);
+  const isScrip = selBook && (selBook.category||'').toLowerCase() === 'scripture';
+  msg.className = 'form-msg success';
+  msg.textContent = status === 'pending_review'
+    ? `🎉 You finished "${bookTitle}"! ${isScrip ? 'Now recite to Will' : 'Will needs to verify'} before the reward is counted. ⏳`
+    : `✅ Progress updated — ${isScrip ? 'verse' : 'page'} ${currentPage} of ${totalPages}`;
+  msg.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Update Progress';
+  setTimeout(() => { msg.style.display = 'none'; }, 4000);
+};
+
+// ─── LEADERBOARD ───
+function renderLeaderboard() {
+  const readerMap = {};
+  readers.forEach(r => {
+    if (!readerMap[r.name]) readerMap[r.name] = { completed: 0, earned: 0, reading: 0 };
+    if (r.status === 'completed') {
+      readerMap[r.name].completed++;
+      const book = books.find(b => b.title === r.book);
+      readerMap[r.name].earned += book ? book.reward : 0;
+    } else {
+      readerMap[r.name].reading++;
+    }
+  });
+
+  const sorted = Object.entries(readerMap)
+    .map(([name, d]) => ({ name, ...d }))
+    .sort((a, b) => b.earned - a.earned || b.completed - a.completed);
+
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = sorted.map((r, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const isExpanded = leaderboardExpanded === r.name;
+    const readerBooks = readers.filter(rd => rd.name === r.name);
+    const completedBooks = readerBooks.filter(rd => rd.status === 'completed');
+    const pendingBooks = readerBooks.filter(rd => rd.status === 'pending_review');
+    const readingBooks = readerBooks.filter(rd => rd.status === 'reading');
+    return `
+      <div class="lb-row-wrapper">
+        <div class="lb-row" onclick="toggleLeaderboardCard('${r.name}')" style="cursor:pointer;">
+          <div class="lb-rank ${rankClass}">${i + 1}</div>
+          <div class="lb-avatar">${r.name[0]}</div>
+          <div class="lb-info">
+            <div class="lb-name">${r.name}</div>
+            <div class="lb-detail">${r.completed} completed · ${r.reading} reading</div>
+          </div>
+          <div class="lb-earned">$${r.earned}</div>
+        </div>
+        ${isExpanded ? `
+        <div style="padding:8px 12px 12px 52px;font-size:12px;border-top:1px solid var(--border);">
+          ${completedBooks.length ? `<div style="margin-bottom:6px;"><strong style="color:var(--green);">✅ Completed</strong></div>` +
+            completedBooks.map(b => {
+              const book = books.find(bk => bk.title === b.book);
+              return `<div style="padding:2px 0;color:var(--text);">📗 ${b.book}${book ? ' — $'+book.reward : ''}</div>`;
+            }).join('') : ''}
+          ${pendingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--gold);">⏳ Pending</strong></div>` +
+            pendingBooks.map(b => `<div style="padding:2px 0;color:var(--muted);">📙 ${b.book}</div>`).join('') : ''}
+          ${readingBooks.length ? `<div style="margin:6px 0;"><strong style="color:var(--blue);">📖 Reading / Memorizing</strong></div>` +
+            readingBooks.map(b => {
+              const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
+              return `<div style="padding:2px 0;color:var(--muted);">📘 ${b.book} — ${pct}%</div>`;
+            }).join('') : ''}
+        </div>
+        ` : ''}
+      </div>`;
+  }).join('');
+}
+
+let leaderboardExpanded = null;
+function toggleLeaderboardCard(name) {
+  leaderboardExpanded = leaderboardExpanded === name ? null : name;
+  renderLeaderboard();
+}
+
+// ─── TABS ───
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  };
+});
+
+// ─── ADMIN MODE ───
+let adminTapCount = 0;
+let adminTapTimer = null;
+let adminMode = false;
+
+function handleAdminTap() {
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 1500);
+  if (adminTapCount >= 3) {
+    adminTapCount = 0;
+    adminMode = !adminMode;
+    document.body.classList.toggle('admin-mode', adminMode);
+  }
+}
+
+// ─── INIT ───
+loadData();
+</script>
+</body>
+</html>
