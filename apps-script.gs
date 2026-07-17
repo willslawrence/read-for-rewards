@@ -1,13 +1,20 @@
 // Apps Script — bound to the "Read for Rewards" Google Sheet
 // Deploy as Web App: Execute as "Me", Access "Anyone"
-// Version 3 — approval flow + email notifications
+// Version 4 — approval flow + email notifications + Books write-back
+
+// Books tab column order, 1-indexed to match getRange()
+var BOOK_COLS = {
+  title: 1, author: 2, cover: 3, reward: 4, summary: 5,
+  rating: 6, genre: 7, totalPages: 8, category: 9,
+  recommended: 10, isNew: 11
+};
 
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var readersSheet = ss.getSheetByName("Readers");
-    
+
     if (data.action === "updateProgress") {
       var name = data.name;
       var book = data.book;
@@ -85,6 +92,46 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    if (data.action === "addBook") {
+      var booksSheet = ss.getSheetByName("Books");
+      if (findBookRow(booksSheet, data.title) !== -1) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false, message: "A book titled \"" + data.title + "\" already exists"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      booksSheet.appendRow([
+        data.title, data.author || "", data.cover || "", data.reward || 0,
+        data.summary || "", data.rating || "", data.genre || "",
+        data.totalPages || "", data.category || "",
+        data.recommended ? "yes" : "", data.isNew ? "yes" : ""
+      ]);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true, message: "Added \"" + data.title + "\""
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (data.action === "updateBook") {
+      var booksSheet = ss.getSheetByName("Books");
+      var row = findBookRow(booksSheet, data.title);
+      if (row === -1) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false, message: "No book titled \"" + data.title + "\""
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      // Only the fields present in the request are touched; the rest keep their values.
+      var updated = [];
+      for (var field in BOOK_COLS) {
+        if (field === "title" || !data.hasOwnProperty(field)) continue;
+        var value = data[field];
+        if (field === "recommended" || field === "isNew") value = value ? "yes" : "";
+        booksSheet.getRange(row, BOOK_COLS[field]).setValue(value);
+        updated.push(field);
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true, message: "Updated " + updated.join(", ") + " on \"" + data.title + "\""
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       success: false, message: "Unknown action"
     })).setMimeType(ContentService.MimeType.JSON);
@@ -93,6 +140,16 @@ function doPost(e) {
       success: false, message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// Returns the 1-indexed sheet row for a book title, or -1. Titles are the join key
+// between the Books and Readers tabs, so the match is exact and case-sensitive.
+function findBookRow(booksSheet, title) {
+  var values = booksSheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][BOOK_COLS.title - 1] === title) return i + 1;
+  }
+  return -1;
 }
 
 function notifyWill(readerName, bookTitle) {
